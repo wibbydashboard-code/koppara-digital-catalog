@@ -21,16 +21,16 @@ import logoKoppara from './assets/logo_koppara.png';
 
 // --- COMPONENTS ---
 
-const KopparaLogo = ({ className = "h-10", compact = false }: { className?: string; compact?: boolean }) => {
+const KopparaLogo = ({ className = "h-20", compact = false }: { className?: string; compact?: boolean }) => {
   const [imgError, setImgError] = useState(false);
 
   if (compact) {
     return (
-      <div className={`${className} overflow-hidden w-10 h-10`}>
+      <div className={`${className} overflow-hidden w-12 h-12`}>
         <img
           src={logoKoppara}
           alt="Koppara"
-          className="h-full w-auto object-cover object-left scale-125"
+          className="h-full w-auto object-cover object-left scale-150"
           onError={() => setImgError(true)}
         />
       </div>
@@ -38,18 +38,19 @@ const KopparaLogo = ({ className = "h-10", compact = false }: { className?: stri
   }
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center justify-center ${className}`}>
       {!imgError ? (
         <img
           src={logoKoppara}
           alt="Koppara"
           className="h-full w-auto object-contain"
+          style={{ minHeight: '100%' }}
           onError={() => setImgError(true)}
         />
       ) : (
         <div className="flex items-center gap-1.5">
-          <div className="w-7 h-7 bg-koppara-green rounded-sm flex items-center justify-center text-white text-xs font-bold shadow-sm">K</div>
-          <span className="text-xl font-bold text-koppara-gray tracking-tight">Koppara</span>
+          <div className="w-8 h-8 bg-koppara-green rounded-sm flex items-center justify-center text-white text-xs font-bold shadow-sm">K</div>
+          <span className="text-2xl font-bold text-koppara-gray tracking-tight">Koppara</span>
         </div>
       )}
     </div>
@@ -474,158 +475,91 @@ export default function App() {
       return map[category] || '#9ACD32';
     };
 
-    const renderPage = (content: string) => `
-      <div class="pdf-page" style="width:210mm;height:297mm;box-sizing:border-box;padding:18mm;background:#ffffff;font-family:'Montserrat',sans-serif;color:#111827;">
-        ${content}
+    const renderPage = (content: string, pageNum: number, totalPages: number) => `
+      <div class="pdf-page" style="width:210mm;height:297mm;box-sizing:border-box;padding:12mm;background:#ffffff;font-family:'Poppins',sans-serif;color:#4D4D4D;display:flex;flex-direction:column;position:relative;">
+        <!-- Header -->
+        <div style="display:flex;justify-content:center;margin-bottom:10px;border-bottom:1px solid #f0f0f0;padding-bottom:10px;">
+          <img src="/logo_koppara.png" style="width:25%;height:auto;object-contain:contain;" />
+        </div>
+        
+        <!-- Content -->
+        <div style="flex:1;">
+          ${content}
+        </div>
+
+        <!-- Footer -->
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:9px;color:#999;">
+            <span style="color:#328B2C;font-weight:700;">WhatsApp:</span> ${distributorPhone} | 
+            <span style="color:#328B2C;font-weight:700;">IG:</span> @koppara.oficial
+          </div>
+          <div style="font-size:9px;color:#999;font-weight:bold;">Página ${pageNum} de ${totalPages}</div>
+        </div>
       </div>
     `;
 
+    const productTemplate = (product: Product) => {
+      const benefits = splitBenefits(product.benefit).slice(0, 3);
+      return `
+        <div style="width:48%;margin-bottom:15px;border:1px solid #f3f4f6;border-radius:8px;padding:10px;display:flex;flex-direction:column;break-inside:avoid;background:#fafafa;">
+          <div style="height:120px;margin-bottom:8px;border-radius:4px;overflow:hidden;">
+            <img src="${product.image || PRODUCT_PLACEHOLDER_DATA_URL}" style="width:100%;height:100%;object-fit:cover;" />
+          </div>
+          <h4 style="font-size:14px;font-weight:bold;margin:0 0 4px 0;color:#1B4D1A;line-height:1.2;">${product.name}</h4>
+          <p style="font-size:10px;color:#666;margin:0 0 8px 0;line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;height:30px;">${product.description}</p>
+          
+          <div style="margin-bottom:10px;flex:1;">
+            ${benefits.map(b => `<div style="font-size:9px;display:flex;align-items:center;gap:4px;margin-bottom:2px;color:#4D4D4D;"><span style="color:#9ACD32;font-weight:bold;">✓</span> ${b}</div>`).join('')}
+          </div>
+          
+          <div style="background:#f0f7e6;padding:6px;border-radius:4px;text-align:center;">
+            <span style="font-size:14px;font-weight:800;color:#328B2C;">${formatCurrency(product.price)}</span>
+          </div>
+        </div>
+      `;
+    };
+
+    const chunkedProducts: Product[][] = [];
+    for (let i = 0; i < catalogProducts.length; i += 4) {
+      chunkedProducts.push(catalogProducts.slice(i, i + 4));
+    }
+
+    const totalPages = chunkedProducts.length + 2; // Portada, Productos, Final
+
     const coverPage = renderPage(`
-      <div style="height:100%;display:flex;flex-direction:column;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <img src="${KOPPARA_LOGO_DATA_URL}" alt="Koppara" style="width:70px;height:70px;" />
-          <div>
-            <div style="font-family:'Playfair Display',serif;font-size:38px;color:#006400;">Catalogo Luxury</div>
-            <div style="font-size:14px;color:#6B7280;letter-spacing:2px;text-transform:uppercase;">Belleza Natural &bull; 2026</div>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:18px;align-items:center;justify-content:space-between;background:#F5F5F5;border-radius:24px;padding:18px;">
-          <div>
-            <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Distribuidora</div>
-            <div style="font-size:24px;font-weight:700;color:#111827;">${distributorName}</div>
-            <div style="font-size:14px;color:#228B22;margin-top:6px;">WhatsApp: ${distributorPhone}</div>
-          </div>
-          <div style="text-align:right;font-size:12px;color:#6B7280;">
-            <div>Edicion Especial</div>
-            <div style="font-weight:700;color:#006400;">Coleccion 2026</div>
-          </div>
-        </div>
-
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <div style="font-size:12px;color:#6B7280;">Lujo botanico y rituales conscientes.</div>
-          <div style="width:160px;height:6px;background:linear-gradient(90deg,#9ACD32,#228B22,#006400);border-radius:999px;"></div>
+      <div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+        <img src="/logo_koppara.png" style="width:50%;margin-bottom:30px;" />
+        <h1 style="font-size:42px;font-weight:800;color:#1B4D1A;margin-bottom:10px;letter-spacing:-1px;">Catálogo Digital</h1>
+        <p style="font-size:16px;color:#4D4D4D;letter-spacing:4px;text-transform:uppercase;margin-bottom:40px;">Colección Luxury 2026</p>
+        
+        <div style="background:#9ACD32;color:white;padding:20px 40px;border-radius:12px;display:inline-block;">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.8;">Atención Personalizada</div>
+          <div style="font-size:24px;font-weight:bold;">${distributorName}</div>
         </div>
       </div>
-    `);
+    `, 1, totalPages);
 
-    const introPage = renderPage(`
-      <div style="height:100%;display:flex;flex-direction:column;gap:20px;">
-        <div>
-          <div style="font-family:'Playfair Display',serif;font-size:34px;color:#006400;">Tu belleza, Nuestra naturaleza.</div>
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin-top:10px;">
-            Koppara nace de la botanica mexicana y la ciencia dermatologica. Creamos rituales de belleza
-            conscientes, con ingredientes seleccionados, procesos sustentables y una promesa: resultados reales
-            con formulas limpias.
-          </p>
+    const productPagesHtml = chunkedProducts.map((group, idx) => {
+      const content = `
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-top:10px;">
+          ${group.map(p => productTemplate(p)).join('')}
         </div>
-        <div style="display:flex;gap:16px;">
-          <div style="flex:1;background:#F5F5F5;border-radius:20px;padding:16px;">
-            <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Valores</div>
-            <ul style="margin:12px 0 0 0;padding:0;list-style:none;color:#111827;font-weight:600;">
-              <li style="margin-bottom:8px;">&#10003; Natural</li>
-              <li style="margin-bottom:8px;">&#10003; Organico</li>
-              <li>&#10003; Sustentable</li>
-            </ul>
-          </div>
-          <div style="flex:1;background:#0F172A;border-radius:20px;padding:16px;color:#FFFFFF;">
-            <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#9ACD32;">Promesa Koppara</div>
-            <p style="font-size:14px;line-height:1.6;margin-top:12px;">
-              Tu ritual comienza con la naturaleza y termina con una piel visible y radiante. Cada formula esta
-              creada para respetar tu microbioma y potenciar tu bienestar.
-            </p>
-          </div>
-        </div>
-        <div style="margin-top:auto;display:flex;align-items:center;gap:12px;">
-          <img src="${KOPPARA_LOGO_DATA_URL}" alt="Koppara" style="width:54px;height:54px;" />
-          <div style="font-size:12px;color:#6B7280;">Rituales premium para una comunidad de distribuidoras.</div>
-        </div>
-      </div>
-    `);
-
-    const productPages = catalogProducts.map((product) => {
-      const benefits = splitBenefits(product.benefit);
-      const benefitItems = benefits.length ? benefits : [product.benefit || 'Resultados visibles desde la primera semana.'];
-      const certifications = product.certifications?.length ? product.certifications : ['Orgánico'];
-      const sku = product.sku || String(product.id);
-      const usage = product.usage || 'Aplicar diariamente con movimientos circulares y constantes.';
-      const image = product.image || PRODUCT_PLACEHOLDER_DATA_URL;
-
-      return renderPage(`
-        <div style="height:100%;display:flex;flex-direction:column;gap:18px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <img src="${KOPPARA_LOGO_DATA_URL}" alt="Koppara" style="width:48px;height:48px;" />
-            <div style="background:${categoryColor(product.category)};color:#ffffff;font-size:11px;padding:6px 14px;border-radius:999px;text-transform:uppercase;letter-spacing:2px;">
-              ${product.category}
-            </div>
-          </div>
-
-          <div style="display:flex;gap:18px;flex:1;">
-            <div style="width:44%;background:#F5F5F5;border-radius:24px;padding:12px;display:flex;align-items:center;justify-content:center;">
-              <img src="${image}" alt="${product.name}" crossorigin="anonymous" onerror="this.onerror=null;this.src='${PRODUCT_PLACEHOLDER_DATA_URL}';" style="width:100%;height:auto;border-radius:20px;object-fit:cover;" />
-            </div>
-            <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <div style="font-family:'Playfair Display',serif;font-size:26px;color:#111827;">${product.name}</div>
-                <div style="font-size:12px;color:#6B7280;margin-top:4px;">Referencia / SKU: ${sku}</div>
-              </div>
-              <div>
-                <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Descripcion</div>
-                <p style="font-size:13px;color:#374151;line-height:1.6;margin-top:6px;">${product.description}</p>
-              </div>
-              <div>
-                <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Beneficios</div>
-                <ul style="margin:6px 0 0 0;padding:0;list-style:none;font-size:13px;color:#111827;">
-                  ${benefitItems.map((item) => `<li style=\"margin-bottom:6px;\">&#10003; ${item}</li>`).join('')}
-                </ul>
-              </div>
-              <div>
-                <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Modo de uso</div>
-                <p style="font-size:13px;color:#374151;line-height:1.6;margin-top:6px;">${usage}</p>
-              </div>
-            </div>
-          </div>
-
-          <div style="display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid #E5E7EB;padding-top:12px;">
-            <div>
-              <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Certificaciones</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
-                ${certifications.map((item) => `<span style=\"font-size:11px;border:1px solid #9ACD32;color:#006400;padding:4px 10px;border-radius:999px;\">${item}</span>`).join('')}
-              </div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Precio publico sugerido</div>
-              <div style="font-size:22px;font-weight:700;color:#006400;">${formatCurrency(product.price)}</div>
-            </div>
-          </div>
-        </div>
-      `);
+      `;
+      return renderPage(content, idx + 2, totalPages);
     });
 
     const finalPage = renderPage(`
-      <div style="height:100%;display:flex;flex-direction:column;justify-content:space-between;">
-        <div>
-          <img src="${KOPPARA_LOGO_DATA_URL}" alt="Koppara" style="width:70px;height:70px;" />
-          <div style="font-family:'Playfair Display',serif;font-size:34px;color:#006400;margin-top:16px;">Inicia hoy tu ritual.</div>
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin-top:10px;">
-            Agenda una asesoria personalizada y descubre el plan ideal para ti. Este catalogo esta pensado para
-            distribuir belleza con impacto positivo.
-          </p>
-        </div>
-
-        <div style="background:#F5F5F5;border-radius:24px;padding:18px;">
-          <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;">Contacto</div>
-          <div style="font-size:20px;font-weight:700;color:#111827;margin-top:8px;">${distributorName}</div>
-          <div style="font-size:14px;color:#228B22;margin-top:6px;">WhatsApp: ${distributorPhone}</div>
-          <div style="font-size:12px;color:#6B7280;margin-top:10px;">Redes: @koppara.oficial · @koppara.distribuidoras</div>
-        </div>
-
-        <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#6B7280;">
-          <span>Generado el: ${dateLabel}</span>
-          <span>koppara.com</span>
+      <div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+        <h3 style="font-size:28px;font-weight:bold;color:#1B4D1A;margin-bottom:20px;">¿Lista para iniciar tu ritual?</h3>
+        <p style="font-size:14px;color:#666;max-width:300px;margin-bottom:30px;">Contacta a tu distribuidora oficial para pedidos y asesoría personalizada.</p>
+        
+        <div style="border:2px dashed #9ACD32;padding:20px;border-radius:16px;width:80%;">
+          <div style="font-size:12px;color:#9ACD32;font-weight:bold;margin-bottom:8px;">DISTRIBUIDORA AUTORIZADA</div>
+          <div style="font-size:22px;font-weight:bold;color:#4D4D4D;">${distributorName}</div>
+          <div style="font-size:18px;color:#328B2C;font-weight:bold;margin-top:10px;">WhatsApp: ${distributorPhone}</div>
         </div>
       </div>
-    `);
+    `, totalPages, totalPages);
 
     let container: HTMLDivElement | null = null;
     try {
@@ -637,7 +571,7 @@ export default function App() {
       container.style.top = '0';
       container.style.width = '210mm';
       container.style.background = '#ffffff';
-      container.innerHTML = [coverPage, introPage, ...productPages, finalPage].join('');
+      container.innerHTML = [coverPage, ...productPagesHtml, finalPage].join('');
       document.body.appendChild(container);
 
       await waitForImages(container);
@@ -677,8 +611,8 @@ export default function App() {
             <button onClick={() => setCurrentView(distributor?.isSocia ? 'socias' : 'join')} className={`hover:text-koppara-green transition ${currentView === 'socias' || currentView === 'join' ? 'text-koppara-green' : ''}`}>Membresía</button>
           </nav>
 
-          <div className="flex-1 flex justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <KopparaLogo className="h-10 md:h-12 group-hover:scale-105 transition-transform" />
+          <div className="flex-[2] flex justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <KopparaLogo className="h-16 md:h-20 group-hover:scale-105 transition-transform" />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-4">
@@ -781,15 +715,20 @@ export default function App() {
                 { name: 'Luxury', price: 1500, perks: ['25% descuento', 'Kit Inicio Premium', '10% comisión referidos'], popular: true },
                 { name: 'Elite', price: 3500, perks: ['35% descuento', 'Kit Elite Gold', 'Envíos Gratis SIEMPRE'] },
               ].map(plan => (
-                <div key={plan.name} className={`p-10 rounded-lg border border-slate-100 shadow-sm ${plan.popular ? 'bg-koppara-dark text-white shadow-2xl scale-105 z-10' : 'bg-white border-slate-100 shadow-xl'}`}>
+                <div key={plan.name} className={`p-10 rounded-lg border flex flex-col relative ${plan.popular ? 'bg-koppara-dark text-white shadow-2xl scale-105 z-10 border-transparent' : 'bg-white border-slate-100 shadow-xl text-koppara-gray'}`}>
                   {plan.popular && <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-koppara-green text-white text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-full">Más Popular</span>}
-                  <h3 className="text-2xl font-bold text-koppara-gray mb-2">{plan.name}</h3>
+                  <h3 className={`text-2xl font-bold mb-2 ${plan.popular ? 'text-white' : 'text-koppara-gray'}`}>{plan.name}</h3>
                   <div className="mb-10">
                     <span className="text-4xl font-bold">{plan.price === 0 ? 'Gratis' : formatCurrency(plan.price)}</span>
-                    {plan.price > 0 && <span className="text-[10px] uppercase font-bold opacity-40 ml-2">/ año</span>}
+                    {plan.price > 0 && <span className={`text-[10px] uppercase font-bold ml-2 ${plan.popular ? 'text-white/40' : 'opacity-40'}`}>/ año</span>}
                   </div>
-                  <ul className="space-y-4 mb-10 flex-1 text-sm font-medium opacity-80">
-                    {plan.perks.map(perk => <li key={perk} className="flex items-center gap-2"><CheckCircle2 size={16} className="text-koppara-green" /> {perk}</li>)}
+                  <ul className={`space-y-4 mb-10 flex-1 text-sm font-medium ${plan.popular ? 'text-white/90' : 'text-slate-600'}`}>
+                    {plan.perks.map(perk => (
+                      <li key={perk} className="flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-koppara-green shrink-0" />
+                        <span className={perk.includes('Envíos Gratis') ? 'text-[#D4AF37] font-bold' : ''}>{perk}</span>
+                      </li>
+                    ))}
                   </ul>
                   <button onClick={() => plan.price === 0 ? setCurrentView('catalog') : setSelectedCheckoutPlan(plan)} className={`w-full py-5 rounded-2xl font-bold transition uppercase tracking-widest text-xs ${plan.popular ? 'bg-koppara-green text-white' : 'bg-koppara-lightGray text-koppara-gray'}`}>
                     {plan.name === 'Básica' ? 'Registrarme' : 'Unirme Ahora'}
