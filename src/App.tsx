@@ -55,7 +55,7 @@ const KopparaLogo = ({ className = "h-20", compact = false }: { className?: stri
           src="/icon-512.png"
           alt="Koppara"
           className="h-full w-auto object-contain"
-          style={{ height: '100%' }}
+          style={{ height: '100%', width: 'auto' }}
           onError={() => setImgError(true)}
         />
       ) : (
@@ -690,14 +690,14 @@ export default function App() {
             <button onClick={() => setCurrentView(distributor?.isSocia ? 'socias' : 'join')} className={`hover:text-koppara-green transition ${currentView === 'socias' || currentView === 'join' ? 'text-koppara-green' : ''}`}>Membresía</button>
           </nav>
 
-          <div className="flex-[2] flex justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <KopparaLogo className="h-[54px] group-hover:scale-105 transition-transform" />
+          <div className="flex-[2] flex items-center justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <KopparaLogo className="h-[64px] group-hover:scale-105 transition-transform" />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-4">
-            <div className="hidden md:flex items-center bg-koppara-lightGray rounded-full px-4 py-2 border border-slate-100 focus-within:border-koppara-green transition-all">
+            <div className="hidden md:flex items-center bg-koppara-lightGray rounded-full px-4 py-2 border border-slate-100 focus-within:border-koppara-green transition-all max-w-[300px]">
               <Search size={16} className="text-slate-300" />
-              <input type="text" placeholder="Buscar..." className="bg-transparent border-none outline-none text-xs ml-2 w-24 focus:w-40 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <input type="text" placeholder="Buscar..." className="bg-transparent border-none outline-none text-xs ml-2 w-full focus:ring-0 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             <button
               onClick={() => setIsPdfModalOpen(true)}

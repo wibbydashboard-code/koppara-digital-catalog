@@ -26,7 +26,7 @@ Plataforma de empoderamiento para distribuidoras de cosmética botánica, transf
 ---
 
 ## 📏 Reglas de Oro (Branding & UX)
-- **Logotipo**: Usar estrictamente `icon-512.png`. En el Navbar debe tener una altura fija de **54px**.
+- **Logotipo**: Usar estrictamente `icon-512.png`. En el Navbar debe tener una altura fija de **64px**.
 - **Tipografía**: Jerarquía clara; precios en negrita/mono y beneficios destacados con iconos **✓ verdes**.
 - **Diseño de Catálogo**: Formato de **2 columnas** por página para eliminar espacios en blanco y optimizar el scroll en dispositivos móviles.
 - **Alertas CRM**: Visualización en **rojo** para clientes que excedan las **48 horas** de inactividad (Seguimiento Pendiente).
@@ -44,6 +44,19 @@ Plataforma de empoderamiento para distribuidoras de cosmética botánica, transf
 - **Aprendizaje**: Las socias perdían ventas por falta de seguimiento organizado.
 - **Ajuste**: Creación del módulo **CRM Proactivo** con alertas de 48h y auto-registro de leads al compartir.
 - **Seguridad**: Implementación de **Redirección RBAC** inmediata; el acceso a `/admin` está restringido estrictamente a cuentas con metadatos de administrador.
+
+### v1.1.0 (Feb 2026) - Analítica y SEO de Nicho
+- **Aprendizaje**: El término "Botánica" era demasiado genérico para resaltar el valor diferencial de la marca.
+- **Ajuste**: Se actualizó el ADN del proyecto y el SEO (Open Graph) para posicionar a Koppara como **"Cosmética Orgánica hecha a base de coco"**, mejorando la previsualización en WhatsApp.
+- **Aprendizaje**: El administrador necesitaba medir quién realmente vende y quién no para dirigir incentivos.
+- **Ajuste**: Desarrollo de la sección **Estadísticas de Eficiencia** en `/admin`, con cálculo automático de tasas de conversión y ranking de líderes por monto cotizado.
+- **UX**: Se estableció la regla de **bloqueo preventivo**; no se puede abrir el enlace de WhatsApp si los campos de registro de cliente están vacíos.
+
+### v1.1.1 (Feb 2026) - Refinamiento de Header
+- **Aprendizaje**: El logotipo a 54px se perdía visualmente debido al margen interno de la imagen original.
+- **Ajuste**: Se escaló forzadamente a **64px** con altura fija y centrado flex absoluto dentro del Navbar.
+- **Aprendizaje**: La barra de búsqueda competía por espacio con el logo en pantallas medianas.
+- **Ajuste**: Se limitó el ancho de búsqueda a un **máximo de 300px** para dar "aire" al branding central.
 
 ---
 
