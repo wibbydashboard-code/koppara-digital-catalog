@@ -40,18 +40,27 @@ export interface Producto {
   created_at: string
 }
 
-export interface Socia {
-  id: string
-  nombre: string
-  email: string
-  telefono: string
-  nivel: 'Básica' | 'Luxury' | 'Elite'
-  codigo_referido: string
-  socia_referidora_id: string | null
-  direccion: any | null
-  activo: boolean
-  fecha_registro: string
-  fecha_vencimiento: string | null
+export interface Distribuidora {
+  id: string;
+  email: string;
+  nombre: string;
+  telefono: string;
+  nivel: 'basica' | 'luxury' | 'elite';
+  codigo_referido: string;
+  ganancias_total: number;
+  fecha_registro: string;
+  created_at: string;
+}
+
+export interface Lead {
+  id: string;
+  distribuidora_id: string;
+  nombre_cliente: string;
+  whatsapp_cliente: string;
+  productos: any;
+  monto: number;
+  fecha_pedido: string;
+  estado: 'pendiente' | 'entregado' | 'cancelado';
 }
 
 /**

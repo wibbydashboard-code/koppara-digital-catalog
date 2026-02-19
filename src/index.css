@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --koppara-green: #9ACD32;
+  --koppara-forest: #328B2C;
+  --koppara-dark: #1B4D1A;
+  --koppara-gray: #4D4D4D;
+  --koppara-light: #F9FAF7;
+  --koppara-white: #FFFFFF;
+  
+  /* Business Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  
+  /* Typography */
+  --font-main: 'Poppins', sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background-color: var(--koppara-white);
+  color: var(--koppara-gray);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Base Utility Classes */
+.bg-koppara-green { background-color: var(--koppara-green); }
+.text-koppara-green { color: var(--koppara-green); }
+.bg-koppara-forest { background-color: var(--koppara-forest); }
+.text-koppara-gray { color: var(--koppara-gray); }
+.bg-koppara-light { background-color: var(--koppara-light); }
+
+/* Density & Enterprise Structure */
+.btn-primary {
+  background-color: var(--koppara-green);
+  color: white;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: var(--koppara-forest);
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--koppara-green);
+  box-shadow: 0 0 0 2px rgba(154, 205, 50, 0.1);
+}

@@ -1,5 +1,5 @@
-import { supabase, Producto } from './supabase';
-import { Product } from './types';
+import { supabase, Producto } from '../lib/supabase';
+import { Product } from '../types';
 
 /**
  * Mapea un objeto de la base de datos al formato esperado por el frontend
