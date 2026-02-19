@@ -1,95 +1,49 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, Producto } from '../lib/supabase';
-import { actualizarProductosEnSupabase, productosActualizados } from '../utils/actualizarProductos';
-import { X, Save, RefreshCcw, Plus } from 'lucide-react';
+import { supabase, Producto, Notificacion } from '../lib/supabase';
+import {
+  X, Save, RefreshCcw, Plus, Bell, Package,
+  FileText, Megaphone, Send, Trash2, Eye, EyeOff,
+  TrendingUp, Users, DollarSign, Upload, MessageCircle
+} from 'lucide-react';
+import { enviarNotificacion } from '../services/notifications.service';
 
 const CATEGORIAS = ['Relax', 'Facial', 'Corporal', 'Especializado', 'Capilar', 'Eco'];
 
-type AdminProductForm = {
-  referencia: string;
-  nombre: string;
-  categoria: string;
-  descripcion: string;
-  precio: number;
-  precio_distribuidor: number | null;
-  imagen_url: string;
-  beneficios: string;
-  modo_uso: string;
-  ingredientes: string;
-  certificaciones: string;
-  rituales: string;
-  activo: boolean;
+type AdminProductForm = Producto & {
+  isEditing?: boolean;
 };
 
 type AdminPanelProps = {
   onClose: () => void;
+  descargarPDF: () => Promise<void>;
 };
 
-const parseList = (value: string) =>
-  value
-    .split(/[\n,]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-const mapFromDb = (product: Producto): AdminProductForm => ({
-  referencia: product.referencia ?? '',
-  nombre: product.nombre ?? '',
-  categoria: product.categoria ?? 'Relax',
-  descripcion: product.descripcion ?? '',
-  precio: Number(product.precio ?? 0),
-  precio_distribuidor: product.precio_distribuidor ?? null,
-  imagen_url: product.imagen_url ?? '',
-  beneficios: (product.beneficios || []).join('\n'),
-  modo_uso: product.modo_uso ?? '',
-  ingredientes: (product.ingredientes || []).join('\n'),
-  certificaciones: (product.certificaciones || []).join('\n'),
-  rituales: (product.rituales || []).join('\n'),
-  activo: product.activo ?? true
-});
-
-const createEmpty = (): AdminProductForm => ({
-  referencia: '',
-  nombre: '',
-  categoria: 'Relax',
-  descripcion: '',
-  precio: 0,
-  precio_distribuidor: null,
-  imagen_url: '',
-  beneficios: '',
-  modo_uso: '',
-  ingredientes: '',
-  certificaciones: '',
-  rituales: '',
-  activo: true
-});
-
-export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF }) => {
+  const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync'>('products');
   const [items, setItems] = useState<AdminProductForm[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingRef, setSavingRef] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [bulkLoading, setBulkLoading] = useState(false);
-  const [bulkModalOpen, setBulkModalOpen] = useState(false);
-  const [bulkCurrent, setBulkCurrent] = useState(0);
-  const [bulkTotal, setBulkTotal] = useState(0);
-  const [bulkSuccessCount, setBulkSuccessCount] = useState(0);
+  const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  // Notification State
+  const [notifForm, setNotifForm] = useState({
+    titulo: '',
+    cuerpo: '',
+    categoria: 'promocion' as any,
+    nivel_objetivo: 'todas' as any
+  });
 
   const loadProducts = async () => {
     setLoading(true);
-    setMessage(null);
     const { data, error } = await supabase
       .from('productos')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      setMessage(`Error al cargar productos: ${error.message}`);
-      setLoading(false);
-      return;
+      setMessage({ text: `Error: ${error.message}`, type: 'error' });
+    } else {
+      setItems(data as AdminProductForm[]);
     }
-
-    const mapped = (data as Producto[]).map(mapFromDb);
-    setItems(mapped);
     setLoading(false);
   };
 
@@ -97,294 +51,298 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     loadProducts();
   }, []);
 
-  const handleChange = (index: number, field: keyof AdminProductForm, value: string | number | boolean | null) => {
-    setItems((prev) => {
-      const copy = [...prev];
-      const item = { ...copy[index], [field]: value } as AdminProductForm;
-      copy[index] = item;
-      return copy;
-    });
+  const handleProductChange = (id: string, field: keyof Producto, value: any) => {
+    setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
   const saveProduct = async (product: AdminProductForm) => {
-    if (!product.referencia.trim()) {
-      setMessage('La referencia es obligatoria.');
-      return;
-    }
-    setSavingRef(product.referencia);
-    setMessage(null);
-
-    const payload = {
-      referencia: product.referencia.trim(),
-      nombre: product.nombre.trim(),
-      categoria: product.categoria,
-      descripcion: product.descripcion.trim(),
-      precio: Number(product.precio) || 0,
-      precio_distribuidor: product.precio_distribuidor === null || product.precio_distribuidor === undefined
-        ? null
-        : Number(product.precio_distribuidor) || 0,
-      imagen_url: product.imagen_url.trim(),
-      beneficios: parseList(product.beneficios),
-      modo_uso: product.modo_uso.trim(),
-      ingredientes: parseList(product.ingredientes),
-      certificaciones: parseList(product.certificaciones),
-      rituales: parseList(product.rituales),
-      activo: product.activo
-    };
-
-    const { error } = await supabase
-      .from('productos')
-      .upsert(payload, { onConflict: 'referencia' });
-
+    const { isEditing, ...dataToSave } = product;
+    const { error } = await supabase.from('productos').upsert(dataToSave);
     if (error) {
-      setMessage(`Error al guardar ${product.referencia}: ${error.message}`);
-      setSavingRef(null);
-      return;
-    }
-
-    setMessage(`Producto ${product.referencia} actualizado.`);
-    setSavingRef(null);
-    loadProducts();
-  };
-
-  const handleBulkUpdate = async () => {
-    if (bulkLoading) return;
-    setBulkLoading(true);
-    setMessage(null);
-    setBulkCurrent(0);
-    setBulkTotal(productosActualizados.length);
-    setBulkSuccessCount(0);
-    try {
-      const updated = await actualizarProductosEnSupabase(productosActualizados, (current, total) => {
-        setBulkCurrent(current);
-        setBulkTotal(total);
-      });
-      setBulkSuccessCount(updated.length);
-      setMessage(`✅ ${updated.length} productos actualizados correctamente`);
+      setMessage({ text: `Error al guardar: ${error.message}`, type: 'error' });
+    } else {
+      setMessage({ text: 'Producto actualizado con éxito', type: 'success' });
       loadProducts();
-    } catch (error: any) {
-      setMessage(`Error en actualizacion masiva: ${error.message || 'Error desconocido'}`);
-    } finally {
-      setBulkLoading(false);
     }
   };
 
-  const progressPercent = bulkTotal > 0 ? Math.round((bulkCurrent / bulkTotal) * 100) : 0;
+  const calculateDiscount = (price: number, percent: number) => price * (1 - percent / 100);
+
+  const handleSendNotif = async () => {
+    try {
+      await enviarNotificacion(notifForm);
+      setMessage({ text: 'Notificación enviada y registrada', type: 'success' });
+      setNotifForm({ titulo: '', cuerpo: '', categoria: 'promocion', nivel_objetivo: 'todas' });
+    } catch (err: any) {
+      setMessage({ text: `Error: ${err.message}`, type: 'error' });
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-[230] bg-black/60 backdrop-blur-md p-4 overflow-auto">
-      <div className="max-w-6xl mx-auto bg-white rounded-[2rem] p-8 shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-bold font-display text-slate-800">Admin Panel Productos</h2>
-            <p className="text-slate-400 text-sm">Edicion rapida para desarrollo local.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={loadProducts}
-              className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-400 transition"
-            >
-              <RefreshCcw size={16} />
-              Recargar
-            </button>
-            <button
-              onClick={() => setItems((prev) => [createEmpty(), ...prev])}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-koppara-green text-white font-bold shadow-md shadow-koppara-green/30 hover:bg-koppara-forest transition"
-            >
-              <Plus size={16} />
-              Nuevo
-            </button>
-            <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
+    <div className="fixed inset-0 z-[230] bg-slate-900/95 backdrop-blur-xl flex flex-col md:p-6 animate-fadeIn">
+      <div className="flex-1 bg-white md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-koppara-green/20 bg-koppara-green/10 p-4">
-          <div>
-            <div className="text-sm font-bold text-slate-700">Actualizar Productos desde Template</div>
-            <div className="text-xs text-slate-500">Sincroniza todos los productos usando el template.</div>
-          </div>
-          <button
-            onClick={() => setBulkModalOpen(true)}
-            disabled={bulkLoading}
-            className="flex items-center gap-2 rounded-full bg-koppara-green px-4 py-2 text-white font-bold shadow-md shadow-koppara-green/30 hover:bg-koppara-forest transition disabled:opacity-60"
-          >
-            <RefreshCcw size={16} />
-            Actualizar Productos desde Template
-          </button>
-        </div>
-
-        {bulkLoading && (
-          <div className="mb-4 rounded-2xl border border-slate-100 bg-white p-4">
-            <div className="text-sm text-slate-600">Actualizando producto {bulkCurrent} de {bulkTotal}...</div>
-            <div className="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-              <div
-                className="h-full bg-koppara-green transition-all"
-                style={{ width: `${progressPercent}%` }}
-              />
+        {/* Header Admin */}
+        <header className="px-10 py-6 border-b flex items-center justify-between bg-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-koppara-green rounded-2xl flex items-center justify-center text-white shadow-lg shadow-koppara-green/20">
+              <ShieldCheck size={28} />
             </div>
-            <div className="mt-2 text-xs text-slate-400">{progressPercent}% completado</div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Panel Maestro Koppara</h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Control Central de Operaciones</p>
+            </div>
           </div>
-        )}
+          <button onClick={onClose} className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-red-500 transition-all shadow-sm">
+            <X size={24} />
+          </button>
+        </header>
 
-        {message && <div className="mb-4 text-sm text-slate-600">{message}</div>}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar Nav */}
+          <aside className="w-24 md:w-64 border-r bg-slate-50/50 flex flex-col p-4 gap-2">
+            {[
+              { id: 'products', icon: Package, label: 'Productos' },
+              { id: 'notifications', icon: Megaphone, label: 'Avisos' },
+              { id: 'sync', icon: RefreshCcw, label: 'Sincronización' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-4 p-4 rounded-2xl font-bold text-sm transition-all ${activeTab === tab.id
+                  ? 'bg-koppara-green text-white shadow-lg shadow-koppara-green/20'
+                  : 'text-slate-400 hover:bg-white hover:text-slate-600'
+                  }`}
+              >
+                <tab.icon size={20} />
+                <span className="hidden md:inline">{tab.label}</span>
+              </button>
+            ))}
 
-        {loading ? (
-          <div className="text-slate-400">Cargando productos...</div>
-        ) : (
-          <div className="space-y-6">
-            {items.map((item, index) => (
-              <div key={`${item.referencia}-${index}`} className="border border-slate-100 rounded-3xl p-6 shadow-sm">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                  <div className="lg:col-span-4">
-                    <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center">
-                      {item.imagen_url ? (
-                        <img src={item.imagen_url} alt={item.nombre} className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-slate-300 text-sm">Sin imagen</span>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="URL imagen"
-                      className="mt-3 w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2"
-                      value={item.imagen_url}
-                      onChange={(e) => handleChange(index, 'imagen_url', e.target.value)}
-                    />
-                  </div>
+            <div className="mt-auto p-4 bg-slate-100 rounded-2xl hidden md:block">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Estado DB</span>
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              </div>
+              <p className="text-xs font-medium text-slate-600">Conexión Segura</p>
+            </div>
+          </aside>
 
-                  <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="Referencia"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2"
-                      value={item.referencia}
-                      onChange={(e) => handleChange(index, 'referencia', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Nombre"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2"
-                      value={item.nombre}
-                      onChange={(e) => handleChange(index, 'nombre', e.target.value)}
-                    />
-                    <select
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2"
-                      value={item.categoria}
-                      onChange={(e) => handleChange(index, 'categoria', e.target.value)}
-                    >
-                      {CATEGORIAS.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Precio"
-                        className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2"
-                        value={item.precio}
-                        onChange={(e) => handleChange(index, 'precio', Number(e.target.value))}
-                      />
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Precio distribuidor"
-                        className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2"
-                        value={item.precio_distribuidor ?? ''}
-                        onChange={(e) => handleChange(index, 'precio_distribuidor', e.target.value === '' ? null : Number(e.target.value))}
-                      />
-                    </div>
-                    <textarea
-                      placeholder="Descripcion"
-                      className="md:col-span-2 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 min-h-[90px]"
-                      value={item.descripcion}
-                      onChange={(e) => handleChange(index, 'descripcion', e.target.value)}
-                    />
-                    <textarea
-                      placeholder="Beneficios (uno por linea)"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 min-h-[90px]"
-                      value={item.beneficios}
-                      onChange={(e) => handleChange(index, 'beneficios', e.target.value)}
-                    />
-                    <textarea
-                      placeholder="Ingredientes (uno por linea)"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 min-h-[90px]"
-                      value={item.ingredientes}
-                      onChange={(e) => handleChange(index, 'ingredientes', e.target.value)}
-                    />
-                    <textarea
-                      placeholder="Modo de uso"
-                      className="md:col-span-2 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 min-h-[90px]"
-                      value={item.modo_uso}
-                      onChange={(e) => handleChange(index, 'modo_uso', e.target.value)}
-                    />
-                    <textarea
-                      placeholder="Certificaciones (uno por linea)"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 min-h-[90px]"
-                      value={item.certificaciones}
-                      onChange={(e) => handleChange(index, 'certificaciones', e.target.value)}
-                    />
-                    <textarea
-                      placeholder="Rituales (uno por linea)"
-                      className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 min-h-[90px]"
-                      value={item.rituales}
-                      onChange={(e) => handleChange(index, 'rituales', e.target.value)}
-                    />
-                  </div>
-                </div>
+          {/* Content Area */}
+          <main className="flex-1 overflow-y-auto p-10">
+            {message && (
+              <div className={`mb-8 p-4 rounded-2xl flex items-center justify-between animate-slideDown ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                <span className="font-bold text-sm">{message.text}</span>
+                <button onClick={() => setMessage(null)}><X size={16} /></button>
+              </div>
+            )}
 
-                <div className="mt-4 flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm text-slate-500">
-                    <input
-                      type="checkbox"
-                      checked={item.activo}
-                      onChange={(e) => handleChange(index, 'activo', e.target.checked)}
-                    />
-                    Activo
-                  </label>
+            {activeTab === 'products' && (
+              <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-3xl font-bold text-slate-800">Catálogo de Productos</h3>
                   <button
-                    onClick={() => saveProduct(item)}
-                    disabled={savingRef === item.referencia}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white font-bold hover:bg-black transition disabled:opacity-60"
+                    onClick={() => setItems([{ id: crypto.randomUUID(), nombre: 'Nuevo Producto', referencia: 'KOP-', categoria: 'Relax', descripcion: '', precio: 0, activo: true, status: 'draft', imagen_url: '', beneficios: [], modo_uso: '', ingredientes: [], certificaciones: [], rituales: [], created_at: new Date().toISOString() }, ...items])}
+                    className="flex items-center gap-2 bg-koppara-green text-white px-6 py-3 rounded-full font-bold shadow-xl shadow-koppara-green/20 hover:scale-105 transition-transform"
                   >
-                    <Save size={16} />
-                    {savingRef === item.referencia ? 'Guardando...' : 'Guardar'}
+                    <Plus size={20} /> Nuevo Producto
                   </button>
                 </div>
+
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
+                        <th className="px-6 py-4">Producto</th>
+                        <th className="px-6 py-4">Categoría / SKU</th>
+                        <th className="px-6 py-4">Precio Público</th>
+                        <th className="px-6 py-4">Márgenes Socia</th>
+                        <th className="px-6 py-4">Estado</th>
+                        <th className="px-6 py-4">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {items.map(product => (
+                        <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-6">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 group relative">
+                                <img src={product.image || product.imagen_url} className="w-full h-full object-cover" />
+                                <button className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <Upload size={14} />
+                                </button>
+                              </div>
+                              <div className="flex flex-col">
+                                <input
+                                  className="font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 text-sm w-40"
+                                  value={product.nombre}
+                                  onChange={e => handleProductChange(product.id, 'nombre', e.target.value)}
+                                />
+                                <span className="text-[10px] text-slate-400 font-mono">{product.id.slice(0, 8)}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <select
+                              className="text-xs font-bold text-slate-500 bg-slate-100 border-none rounded-lg px-2 py-1 mb-1 block"
+                              value={product.categoria}
+                              onChange={e => handleProductChange(product.id, 'categoria', e.target.value)}
+                            >
+                              {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <input
+                              className="text-xs text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-24"
+                              value={product.referencia}
+                              onChange={e => handleProductChange(product.id, 'referencia', e.target.value)}
+                            />
+                          </td>
+                          <td className="px-6 py-6 font-mono font-bold text-slate-700">
+                            <div className="flex items-center gap-1">
+                              <span>$</span>
+                              <input
+                                type="number"
+                                className="w-20 bg-transparent border-none p-0 focus:ring-0 text-sm font-bold"
+                                value={product.precio}
+                                onChange={e => handleProductChange(product.id, 'precio', Number(e.target.value))}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[9px] text-slate-400">Básica (15%): <b className="text-slate-600">${calculateDiscount(product.precio, 15).toFixed(0)}</b></span>
+                              <span className="text-[9px] text-slate-400 font-bold border-l-2 border-koppara-green pl-2">Luxury (25%): <b className="text-koppara-forest">${calculateDiscount(product.precio, 25).toFixed(0)}</b></span>
+                              <span className="text-[9px] text-slate-400">Elite (35%): <b className="text-slate-600">${calculateDiscount(product.precio, 35).toFixed(0)}</b></span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <button
+                              onClick={() => handleProductChange(product.id, 'status', product.status === 'published' ? 'draft' : 'published')}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${product.status === 'published'
+                                ? 'bg-green-100 text-green-700 border border-green-200'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200'
+                                }`}
+                            >
+                              {product.status === 'published' ? <Eye size={12} /> : <EyeOff size={12} />}
+                              {product.status === 'published' ? 'Publicado' : 'Borrador'}
+                            </button>
+                          </td>
+                          <td className="px-6 py-6">
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => saveProduct(product)} className="p-2 bg-slate-900 text-white rounded-lg hover:bg-black transition-colors shadow-lg shadow-black/10"><Save size={16} /></button>
+                              <button className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-      {bulkModalOpen && (
-        <div className="fixed inset-0 z-[240] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
-            <h3 className="text-xl font-bold font-display text-slate-800">Actualizar productos</h3>
-            <p className="mt-3 text-sm text-slate-500">¿Estas seguro de actualizar todos los productos?</p>
-            <p className="mt-1 text-xs text-slate-400">Se actualizaran {productosActualizados.length} productos en total.</p>
-            <p className="mt-2 text-xs text-slate-400">Esto sobrescribira los datos existentes si las referencias coinciden.</p>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={() => setBulkModalOpen(false)}
-                className="rounded-full border border-slate-200 px-4 py-2 text-slate-500 hover:text-slate-900 hover:border-slate-400 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  setBulkModalOpen(false);
-                  handleBulkUpdate();
-                }}
-                className="rounded-full bg-koppara-green px-4 py-2 text-white font-bold shadow-md shadow-koppara-green/30 hover:bg-koppara-forest transition"
-              >
-                Actualizar
-              </button>
-            </div>
-          </div>
+            )}
+
+            {activeTab === 'notifications' && (
+              <div className="max-w-3xl space-y-8 animate-fadeIn">
+                <h3 className="text-3xl font-bold text-slate-800">Centro de Avisos</h3>
+
+                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categoría del Mensaje</label>
+                      <select
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-koppara-green"
+                        value={notifForm.categoria}
+                        onChange={e => setNotifForm({ ...notifForm, categoria: e.target.value as any })}
+                      >
+                        <option value="promocion">Promoción ✨</option>
+                        <option value="urgente">Urgente 🚨</option>
+                        <option value="lanzamiento">Lanzamiento 🆕</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dirigido a:</label>
+                      <select
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-koppara-green"
+                        value={notifForm.nivel_objetivo}
+                        onChange={e => setNotifForm({ ...notifForm, nivel_objetivo: e.target.value as any })}
+                      >
+                        <option value="todas">Todas las socias</option>
+                        <option value="basica">Solo Básica</option>
+                        <option value="luxury">Solo Luxury</option>
+                        <option value="elite">Solo Elite</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Asunto</label>
+                    <input
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 font-bold outline-none focus:border-koppara-green"
+                      placeholder="Ej: Nuevos precios de temporada..."
+                      value={notifForm.titulo}
+                      onChange={e => setNotifForm({ ...notifForm, titulo: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cuerpo del Mensaje</label>
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 min-h-[150px] outline-none focus:border-koppara-green"
+                      placeholder="Escribe el contenido detallado aquí..."
+                      value={notifForm.cuerpo}
+                      onChange={e => setNotifForm({ ...notifForm, cuerpo: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="pt-6 flex flex-col md:flex-row gap-4">
+                    <button
+                      onClick={handleSendNotif}
+                      className="flex-1 bg-koppara-green text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-koppara-green/20 hover:scale-[1.02] transition-all"
+                    >
+                      <Send size={20} /> Enviar Aviso a la App
+                    </button>
+                    {notifForm.categoria === 'urgente' && (
+                      <button className="flex-1 bg-slate-900 text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-black transition-all">
+                        <MessageCircle size={20} /> Notificar por WhatsApp
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'sync' && (
+              <div className="max-w-2xl space-y-8 animate-fadeIn">
+                <h3 className="text-3xl font-bold text-slate-800">Sincronización del Sistema</h3>
+                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-8">
+                  <div className="flex items-start gap-6">
+                    <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shrink-0">
+                      <FileText size={28} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-slate-800">Catálogo PDF Maestro</h4>
+                      <p className="text-sm text-slate-500 mt-2 mb-6">Regenera el archivo PDF global con los precios actuales y productos publicados. El archivo incluirá el logo oficial de 54px y formato compacto de 2 columnas.</p>
+                      <button
+                        onClick={descargarPDF}
+                        className="bg-red-500 text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-red-200 hover:bg-red-600 transition-all flex items-center gap-3"
+                      >
+                        <RefreshCcw size={20} /> Actualizar Catálogo Global
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
         </div>
-      )}
+      </div>
     </div>
   );
 };
+
+const ShieldCheck: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);

@@ -37,6 +37,7 @@ export interface Producto {
   certificaciones: string[]
   rituales: string[]
   activo: boolean
+  status: 'published' | 'draft'
   created_at: string
 }
 
@@ -61,6 +62,17 @@ export interface Lead {
   monto: number;
   fecha_pedido: string;
   estado: 'pendiente' | 'entregado' | 'cancelado';
+}
+
+export interface Notificacion {
+  id: string;
+  distribuidora_id?: string; // Si es null, es para todas
+  nivel_objetivo?: 'basica' | 'luxury' | 'elite' | 'todas';
+  titulo: string;
+  cuerpo: string;
+  categoria: 'urgente' | 'promocion' | 'lanzamiento';
+  leida: boolean;
+  created_at: string;
 }
 
 /**

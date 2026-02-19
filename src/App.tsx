@@ -4,7 +4,8 @@ import {
   Search, ShoppingCart, Trash2, MessageCircle, X,
   UserCircle, Sparkles, ArrowRight, Package,
   CheckCircle2, Plus, Minus, Loader2, LogOut,
-  Copy, Gift, ShieldCheck, Info, Phone, CreditCard, Wallet, Download
+  Copy, Gift, ShieldCheck, Info, Phone, CreditCard, Wallet, Download,
+  Bell
 } from 'lucide-react';
 import { PRODUCTS as FALLBACK_PRODUCTS, CATEGORIES } from './constants';
 import { Product, Distributor, CartItem } from './types';
@@ -18,6 +19,8 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { AdminPanel } from './components/AdminPanel';
 import logoKoppara from './assets/logo_koppara.png';
+import { obtenerNotificaciones } from './services/notifications.service';
+import { Notificacion } from './lib/supabase';
 
 // --- COMPONENTS ---
 
@@ -312,7 +315,10 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isCartAnimating, setIsCartAnimating] = useState(false);
-  const [currentView, setCurrentView] = useState<'catalog' | 'socias' | 'join'>('catalog');
+  const [currentView, setCurrentView] = useState<'catalog' | 'socias' | 'join' | 'admin'>('catalog');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  const [unreadNotif, setUnreadNotif] = useState(0);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [selectedCheckoutPlan, setSelectedCheckoutPlan] = useState<{ name: string, price: number } | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -321,6 +327,31 @@ export default function App() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const isDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  useEffect(() => {
+    const checkRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.role === 'admin') {
+        setIsAdmin(true);
+      }
+    };
+    checkRole();
+  }, []);
+
+  useEffect(() => {
+    if (distributor) {
+      const loadNotifs = async () => {
+        try {
+          const list = await obtenerNotificaciones(distributor.nivel, distributor.id);
+          setNotificaciones(list);
+          setUnreadNotif(list.filter(n => !n.leida).length);
+        } catch (e) {
+          console.error("Error cargando notificaciones", e);
+        }
+      };
+      loadNotifs();
+    }
+  }, [distributor]);
 
   useEffect(() => {
     // Cargar productos de Supabase
@@ -445,11 +476,15 @@ export default function App() {
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-  const descargarCatalogoPDF = async () => {
+  const descargarCatalogoPDF = async (onlyPublished = false) => {
     if (pdfLoading) return;
-    const catalogProducts = products.length ? products : FALLBACK_PRODUCTS;
+    let catalogProducts = products.length ? products : FALLBACK_PRODUCTS;
+    if (onlyPublished) {
+      catalogProducts = products.filter(p => p.status === 'published');
+    }
+
     if (!catalogProducts.length) {
-      window.alert('No hay productos disponibles para generar el catalogo.');
+      window.alert('No hay productos disponibles para generar el catálogo.');
       return;
     }
 
@@ -591,7 +626,7 @@ export default function App() {
       }
 
       pdf.save(`catalogo-koppara-${fileDate}.pdf`);
-      setIsPdfModalOpen(false);
+      if (!onlyPublished) setIsPdfModalOpen(false);
     } catch (error) {
       console.error('Error al generar PDF:', error);
       window.alert('No se pudo generar el catalogo PDF. Intenta nuevamente.');
@@ -634,12 +669,18 @@ export default function App() {
             >
               <Download size={18} />
             </button>
-            {isDevHost && (
-              <button
-                onClick={() => setIsAdminOpen(true)}
-                className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 text-slate-500 text-[10px] uppercase tracking-widest hover:text-slate-900 hover:border-slate-400 transition"
-              >
-                Admin
+            <div className="relative cursor-pointer group" onClick={() => distributor && setUnreadNotif(0)}>
+              <Bell size={24} className="text-slate-400 group-hover:text-koppara-green transition" />
+              {unreadNotif > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-sm ring-2 ring-red-500/20">
+                  {unreadNotif}
+                </span>
+              )}
+            </div>
+
+            {isAdmin && (
+              <button onClick={() => setCurrentView('admin')} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:bg-koppara-green hover:text-white transition shadow-sm">
+                <ShieldCheck size={20} />
               </button>
             )}
             <button onClick={() => setIsCartOpen(true)} className={`relative flex items-center gap-3 bg-white border border-slate-100 hover:border-koppara-green/30 hover:bg-koppara-lightGray px-5 py-2.5 rounded-full transition-all group ${isCartAnimating ? 'animate-cart-bounce' : ''}`}>
@@ -850,6 +891,35 @@ export default function App() {
         <KopparaLogo className="h-10 mx-auto mb-6 opacity-30 grayscale" />
         <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2024 Koppara México • Luxury Experience</p>
       </footer>
+      {/* Notification List Modal if Bell Clicked */}
+      {unreadNotif === 0 && notificaciones.length > 0 && (
+        <div className="fixed bottom-24 right-10 z-[200] w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 animate-slideUp">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-bold text-slate-800">Avisos Recientes</h4>
+            <button onClick={() => setNotificaciones([])} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+          </div>
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+            {notificaciones.map(n => (
+              <div key={n.id} className={`p-3 rounded-2xl border ${n.categoria === 'urgente' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${n.categoria === 'urgente' ? 'bg-red-500 text-white' : 'bg-koppara-green text-white'
+                    }`}>{n.categoria}</span>
+                  <span className="text-[10px] text-slate-400 font-medium">{new Date(n.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="font-bold text-xs text-slate-800">{n.titulo}</div>
+                <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">{n.cuerpo}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {currentView === 'admin' && isAdmin && (
+        <AdminPanel
+          onClose={() => setCurrentView('catalog')}
+          descargarPDF={() => descargarCatalogoPDF(true)}
+        />
+      )}
     </div>
   );
 }
