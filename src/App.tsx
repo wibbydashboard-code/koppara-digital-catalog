@@ -5,7 +5,7 @@ import {
   UserCircle, Sparkles, ArrowRight, Package,
   CheckCircle2, Plus, Minus, Loader2, LogOut,
   Copy, Gift, ShieldCheck, Info, Phone, CreditCard, Wallet, Download,
-  Bell
+  Bell, Users, Megaphone, FileText
 } from 'lucide-react';
 import { PRODUCTS as FALLBACK_PRODUCTS, CATEGORIES } from './constants';
 import { Product, Distributor, CartItem } from './types';
@@ -18,9 +18,17 @@ import { Distribuidora, Lead } from './lib/supabase';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { AdminPanel } from './components/AdminPanel';
-import logoKoppara from './assets/logo_koppara.png';
+import logoKoppara from '../public/icon-512.png';
 import { obtenerNotificaciones } from './services/notifications.service';
-import { Notificacion } from './lib/supabase';
+import { Notificacion, Prospecto } from './lib/supabase';
+import {
+  registrarProspectoYCompartir,
+  obtenerProspectos,
+  obtenerHistorialLeads,
+  actualizarEstadoProspecto
+} from './services/crm.service';
+
+// ... rest of imports
 
 // --- COMPONENTS ---
 
@@ -31,9 +39,9 @@ const KopparaLogo = ({ className = "h-20", compact = false }: { className?: stri
     return (
       <div className={`${className} overflow-hidden w-12 h-12`}>
         <img
-          src={logoKoppara}
+          src="/icon-512.png"
           alt="Koppara"
-          className="h-full w-auto object-cover object-left scale-150"
+          className="h-full w-auto object-cover object-left"
           onError={() => setImgError(true)}
         />
       </div>
@@ -44,14 +52,14 @@ const KopparaLogo = ({ className = "h-20", compact = false }: { className?: stri
     <div className={`flex items-center justify-center ${className}`}>
       {!imgError ? (
         <img
-          src={logoKoppara}
+          src="/icon-512.png"
           alt="Koppara"
           className="h-full w-auto object-contain"
-          style={{ minHeight: '100%' }}
+          style={{ height: '100%' }}
           onError={() => setImgError(true)}
         />
       ) : (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 font-sans">
           <div className="w-8 h-8 bg-koppara-green rounded-sm flex items-center justify-center text-white text-xs font-bold shadow-sm">K</div>
           <span className="text-2xl font-bold text-koppara-gray tracking-tight">Koppara</span>
         </div>
@@ -319,6 +327,14 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [unreadNotif, setUnreadNotif] = useState(0);
+  const [prospectos, setProspectos] = useState<Prospecto[]>([]);
+  const [historialLeads, setHistorialLeads] = useState<Lead[]>([]);
+  const [isCrmLoading, setIsCrmLoading] = useState(false);
+  const [crmView, setCrmView] = useState<'notifs' | 'prospectos' | 'historial'>('notifs');
+
+  // Popup de registro de prospecto
+  const [showProspectoPopup, setShowProspectoPopup] = useState(false);
+  const [prospectoTemp, setProspectoTemp] = useState({ nombre: '', telefono: '' });
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [selectedCheckoutPlan, setSelectedCheckoutPlan] = useState<{ name: string, price: number } | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -333,23 +349,35 @@ export default function App() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.user_metadata?.role === 'admin') {
         setIsAdmin(true);
+      } else if (currentView === 'admin') {
+        // Redirección inmediata si intenta acceder a admin sin rol
+        setCurrentView(distributor ? 'socias' : 'catalog');
       }
     };
     checkRole();
-  }, []);
+  }, [currentView, distributor]);
 
   useEffect(() => {
     if (distributor) {
-      const loadNotifs = async () => {
+      const loadCrm = async () => {
+        setIsCrmLoading(true);
         try {
-          const list = await obtenerNotificaciones(distributor.nivel, distributor.id);
-          setNotificaciones(list);
-          setUnreadNotif(list.filter(n => !n.leida).length);
+          const listNotifs = await obtenerNotificaciones(distributor.nivel, distributor.id);
+          setNotificaciones(listNotifs);
+          setUnreadNotif(listNotifs.filter(n => !n.leida).length);
+
+          const listProspectos = await obtenerProspectos(distributor.id);
+          setProspectos(listProspectos);
+
+          const listLeads = await obtenerHistorialLeads(distributor.id);
+          setHistorialLeads(listLeads);
         } catch (e) {
-          console.error("Error cargando notificaciones", e);
+          console.error("Error cargando CRM", e);
+        } finally {
+          setIsCrmLoading(false);
         }
       };
-      loadNotifs();
+      loadCrm();
     }
   }, [distributor]);
 
@@ -442,27 +470,42 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleWhatsAppCheckout = async () => {
-    if (cart.length === 0) return;
+  const handleShareWithCrm = async () => {
+    if (!prospectoTemp.nombre || !prospectoTemp.telefono) {
+      alert("Por favor ingresa el nombre y teléfono del cliente para continuar.");
+      return;
+    }
 
-    // Registrar Lead en DB primero (si hay distribuidora activa)
-    if (distributor || user) {
+    if (distributor) {
       try {
-        await registrarLead({
-          distribuidora_id: user?.id || '', // Si no hay login, se registra como huérfano o se omite
-          nombre_cliente: 'Cliente Web',
-          whatsapp_cliente: '',
-          productos: cart.map(i => ({ id: i.id, name: i.name, qty: i.quantity })),
-          monto: cartTotal,
-          estado: 'pendiente'
-        });
-      } catch (err) {
-        console.error("Error al registrar lead:", err);
+        await registrarProspectoYCompartir(
+          distributor.id,
+          { nombre: prospectoTemp.nombre, telefono: prospectoTemp.telefono },
+          cart.map(i => ({ id: i.id, name: i.name, qty: i.quantity })),
+          cartTotal
+        );
+
+        // Recargar datos
+        const updatedProspectos = await obtenerProspectos(distributor.id);
+        setProspectos(updatedProspectos);
+        const updatedLeads = await obtenerHistorialLeads(distributor.id);
+        setHistorialLeads(updatedLeads);
+      } catch (e) {
+        console.error("Error en CRM auto-registro", e);
       }
     }
 
-    const message = `Hola! Quiero cotizar:\n${cart.map(i => `- ${i.name} (${i.quantity})`).join('\n')}\nTotal: ${formatCurrency(cartTotal)}`;
-    window.open(getWhatsAppLink("524771234567", message), '_blank');
+    const message = `¡Hola ${prospectoTemp.nombre}! 👋 Soy ${distributor?.nombre || 'tu distribuidora'} de Koppara México. Es un gusto saludarte.\n\nAquí tienes el desglose de lo que platicamos:\n\n${cart.map(i => `✅ ${i.name} (${i.quantity}) - ${formatCurrency(i.price)}`).join('\n')}\n\n*Total a pagar: ${formatCurrency(cartTotal)}*\n\n¿Quieres que agendemos tu entrega hoy mismo? ✨`;
+    window.open(getWhatsAppLink(prospectoTemp.telefono, message), '_blank');
+    setShowProspectoPopup(false);
+    setCart([]);
+  };
+
+  const checkNeedsFollowUp = (date: string) => {
+    const interactionDate = new Date(date);
+    const now = new Date();
+    const diffHours = Math.abs(now.getTime() - interactionDate.getTime()) / 36e5;
+    return diffHours >= 48 && diffHours < 72; // Ventana de 48h a 72h
   };
 
   const filteredProducts = useMemo(() => {
@@ -470,7 +513,8 @@ export default function App() {
     return products.filter(p => {
       const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
       const matchesSearch = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
+      const isPublished = p.status !== 'draft';
+      return matchesCategory && matchesSearch && isPublished;
     });
   }, [activeCategory, searchQuery, products]);
 
@@ -647,7 +691,7 @@ export default function App() {
           </nav>
 
           <div className="flex-[2] flex justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <KopparaLogo className="h-16 md:h-20 group-hover:scale-105 transition-transform" />
+            <KopparaLogo className="h-[54px] group-hover:scale-105 transition-transform" />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-4">
@@ -767,7 +811,7 @@ export default function App() {
                     {plan.perks.map(perk => (
                       <li key={perk} className="flex items-center gap-2">
                         <CheckCircle2 size={16} className="text-koppara-green shrink-0" />
-                        <span className={perk.includes('Envíos Gratis') ? 'text-[#D4AF37] font-bold' : ''}>{perk}</span>
+                        <span className={perk.includes('Envíos Gratis') ? 'text-[#FFD700] font-black drop-shadow-sm' : ''}>{perk}</span>
                       </li>
                     ))}
                   </ul>
@@ -777,36 +821,253 @@ export default function App() {
                 </div>
               ))}
             </div>
+            <div className="flex gap-4">
+              <button onClick={() => setShowProspectoPopup(true)} className="flex-1 bg-koppara-green text-white py-5 rounded-2xl font-bold font-display shadow-xl shadow-koppara-green/20 hover:scale-105 transition-all text-sm">Compartir con Cliente</button>
+            </div>
           </div>
         )}
 
+        {/* MODAL Dashboard Socia Refined */}
         {currentView === 'socias' && distributor && (
-          <div className="max-w-7xl mx-auto px-4 py-20 animate-fadeIn flex flex-col md:flex-row gap-10">
-            <div className="md:w-1/3 bg-white p-10 rounded-lg border border-slate-100 shadow-sm p-4 md:p-10">
-              <div className="w-24 h-24 bg-koppara-green/10 rounded-full flex items-center justify-center mx-auto mb-6 text-koppara-green"><UserCircle size={64} /></div>
-              <h3 className="text-2xl font-bold text-koppara-gray">{distributor.name}</h3>
-              <span className="bg-koppara-forest/10 text-koppara-forest text-[10px] font-black uppercase tracking-widest px-4 py-1 rounded-full mt-2 inline-block">Socia {distributor.nivel}</span>
-              <div className="mt-10 p-6 bg-koppara-dark text-white rounded-2xl text-left relative overflow-hidden">
-                <h4 className="text-sm font-bold font-display mb-2 relative z-10">Código de Referido</h4>
-                <div className="flex items-center justify-between relative z-10 bg-white/10 p-2 rounded-xl">
-                  <span className="text-koppara-green font-bold text-lg">{distributor.codigoReferido}</span>
-                  <button onClick={() => { navigator.clipboard.writeText(window.location.origin + '/unete?ref=' + distributor.codigoReferido); alert('Copiado!'); }} className="p-2 bg-white/10 rounded-lg"><Copy size={16} /></button>
-                </div>
-                <div className="absolute top-0 right-0 p-4 opacity-10"><Gift size={60} /></div>
+          <div className="bg-white min-h-[90vh] animate-fadeIn">
+            <div className="max-w-7xl mx-auto px-6 py-12">
+
+              {/* Nav CRM Interno */}
+              <div className="flex gap-4 mb-10 overflow-x-auto pb-4 no-scrollbar">
+                {[
+                  { id: 'notifs', label: 'Mi Actividad', icon: Sparkles },
+                  { id: 'prospectos', label: 'Mis Clientes', icon: Users },
+                  { id: 'historial', label: 'Mis Compartidos', icon: MessageCircle }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setCrmView(t.id as any)}
+                    className={`flex items-center gap-3 px-6 py-3 rounded-full font-bold text-xs whitespace-nowrap transition-all ${crmView === t.id ? 'bg-koppara-green text-white shadow-lg' : 'bg-slate-50 text-slate-400'
+                      }`}
+                  >
+                    <t.icon size={16} /> {t.label}
+                  </button>
+                ))}
               </div>
-            </div>
-            <div className="flex-1 space-y-8">
-              <div className="bg-white p-10 rounded-[2rem] border border-slate-100">
-                <h4 className="text-2xl font-bold text-koppara-gray mb-8">Estadísticas</h4>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="p-8 bg-koppara-lightGray rounded-2xl text-center"><p className="text-[10px] font-bold text-slate-300 uppercase mb-1">Referidos</p><p className="text-3xl font-bold">0</p></div>
-                  <div className="p-8 bg-koppara-lightGray rounded-2xl text-center"><p className="text-[10px] font-bold text-slate-300 uppercase mb-1">Comisiones</p><p className="text-3xl font-bold text-koppara-green">$0.00</p></div>
+
+              {crmView === 'notifs' && (
+                <div className="grid md:grid-cols-3 gap-8">
+                  <div className="md:col-span-2 space-y-8">
+                    <div className="bg-koppara-dark p-8 md:p-12 rounded-[2.5rem] text-white overflow-hidden relative group">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-koppara-green/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                      <div className="relative z-10 flex items-center justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase font-black tracking-widest text-koppara-green mb-4 opacity-80">Socia Nivel {distributor.nivel}</div>
+                          <h2 className="text-4xl md:text-5xl font-black mb-4">¡Hola, {distributor.nombre.split(' ')[0]}!</h2>
+                          <div className="flex flex-wrap gap-4 items-center">
+                            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
+                              <span className="text-[10px] font-bold text-white/60">Balance:</span>
+                              <span className="font-bold">{formatCurrency(distributor.gananciasAcumuladas)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
+                              <span className="text-[10px] font-bold text-white/60">Referidos:</span>
+                              <span className="font-bold">{distributor.referidosActivos}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="hidden md:flex w-24 h-24 bg-white/5 rounded-3xl items-center justify-center text-koppara-green border border-white/10 transform group-hover:rotate-12 transition-transform">
+                          <UserCircle size={48} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Avisos App Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <Bell size={20} className="text-koppara-green" /> Avisos para ti
+                      </h3>
+                      <div className="space-y-4">
+                        {notificaciones.length === 0 ? (
+                          <div className="p-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                            <p className="text-sm text-slate-400">No hay avisos por ahora.</p>
+                          </div>
+                        ) : (
+                          notificaciones.map(n => (
+                            <div key={n.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
+                              <div className={`p-3 rounded-2xl ${n.categoria === 'urgente' ? 'bg-red-50 text-red-500' : 'bg-koppara-lightGreen text-koppara-green'}`}>
+                                {n.categoria === 'urgente' ? <Megaphone size={20} /> : <Gift size={20} />}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-800">{n.titulo}</h4>
+                                <p className="text-sm text-slate-500 mt-1">{n.cuerpo}</p>
+                                <span className="text-[10px] font-medium text-slate-300 mt-2 block uppercase">{new Date(n.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 group shadow-sm">
+                      <h4 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <Sparkles size={18} className="text-amber-500" /> Comparte tu Catálogo
+                      </h4>
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200 mb-6">
+                        <p className="text-[10px] font-black tracking-widest text-slate-300 uppercase mb-2">Tu link único</p>
+                        <div className="bg-slate-50 p-3 rounded-xl text-[11px] font-mono text-slate-400 overflow-hidden text-ellipsis mb-4">
+                          koppara.vercel.app/?ref={distributor.codigoReferido}
+                        </div>
+                        <button onClick={() => { navigator.clipboard.writeText(`https://koppara.vercel.app/?ref=${distributor.codigoReferido}`); alert("¡Copiado al portapapeles!"); }} className="w-full bg-koppara-dark text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-black transition">
+                          <Copy size={16} /> Copiar Link
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed text-center">Gana el 10% de comisión por cada compra que realicen tus clientes.</p>
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {crmView === 'prospectos' && (
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-2xl font-black text-slate-800">Mis Clientes</h3>
+                    <div className="text-xs font-bold text-slate-400 bg-slate-100 px-4 py-2 rounded-full">{prospectos.length} contactos</div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {prospectos.map(p => (
+                      <div key={p.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                        {checkNeedsFollowUp(p.ultima_interaccion) && (
+                          <div className="absolute top-0 right-0 bg-red-500 text-white text-[8px] font-black uppercase px-4 py-1.5 rounded-bl-xl flex items-center gap-1">
+                            <Bell size={10} /> Seguimiento 48h
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-300 font-black text-xl">
+                            {p.nombre.charAt(0)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-800">{p.nombre}</h4>
+                            <p className="text-xs text-slate-400">{p.telefono}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-6">
+                          <select
+                            className={`text-[9px] font-black uppercase py-1.5 px-3 rounded-full border-none outline-none cursor-pointer transition-all ${p.estado === 'venta_cerrada' ? 'bg-green-100 text-green-700' :
+                              p.estado === 'en_proceso' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                              }`}
+                            value={p.estado}
+                            onChange={async (e) => {
+                              await actualizarEstadoProspecto(p.id, e.target.value as any);
+                              const updated = await obtenerProspectos(distributor.id);
+                              setProspectos(updated);
+                            }}
+                          >
+                            <option value="interesado">Interesado</option>
+                            <option value="en_proceso">En Proceso</option>
+                            <option value="venta_cerrada">Venta Cerrada</option>
+                          </select>
+                          <span className="text-[9px] text-slate-300 font-bold ml-auto">Última vez: {new Date(p.ultima_interaccion).toLocaleDateString()}</span>
+                        </div>
+                        <button
+                          onClick={() => window.open(`https://wa.me/${p.telefono.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola ${p.nombre.split(' ')[0]}! 👋 Solo pasaba a saludarte y ver si pudiste revisar los productos de Koppara que te compartí. ¿Tienes alguna duda?`)}`, '_blank')}
+                          className="w-full bg-slate-50 group-hover:bg-koppara-green group-hover:text-white text-slate-400 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-100 flex items-center justify-center gap-2"
+                        >
+                          <MessageCircle size={14} /> Recontactar WhatsApp
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {crmView === 'historial' && (
+                <div className="space-y-6 animate-fadeIn">
+                  <h3 className="text-2xl font-black text-slate-800">Historial de Compartición</h3>
+                  <div className="grid gap-4">
+                    {historialLeads.map(lead => (
+                      <div key={lead.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center">
+                            <FileText size={20} />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-800">{lead.nombre_cliente}</h4>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {lead.productos?.map((prod: any) => (
+                                <span key={prod.id} className="text-[9px] font-bold text-koppara-green bg-koppara-lightGreen px-2 py-0.5 rounded-full">
+                                  {prod.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right flex items-center gap-6">
+                          <div className="hidden md:block">
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Monto Cotizado</p>
+                            <p className="font-bold text-slate-700">{formatCurrency(lead.monto)}</p>
+                          </div>
+                          <div className="px-4 py-2 bg-slate-50 rounded-xl text-center">
+                            <p className="text-[9px] font-black text-slate-300 uppercase">Fecha</p>
+                            <p className="text-xs font-bold text-slate-500">{new Date(lead.fecha_pedido).toLocaleDateString()}</p>
+                          </div>
+                          <button
+                            onClick={() => window.open(`https://wa.me/${lead.whatsapp_cliente.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${lead.nombre_cliente.split(' ')[0]}, ¿qué te parecieron los ${lead.productos.length} productos que te coticé?`)}`, '_blank')}
+                            className="bg-slate-900 text-white p-3 rounded-2xl hover:scale-110 transition-transform"
+                          >
+                            <MessageCircle size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {historialLeads.length === 0 && (
+                      <div className="py-20 text-center bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
+                        <Package size={48} className="mx-auto text-slate-200 mb-4" />
+                        <p className="text-slate-400 font-bold">Sin actividad de compartición reciente.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-16 pt-8 border-t border-slate-100 flex items-center justify-between">
+                <button onClick={handleLogout} className="flex items-center gap-2 text-slate-400 font-bold text-sm hover:text-red-500 transition-colors">
+                  <LogOut size={18} /> Cerrar Sesión
+                </button>
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Dashboard V.2.1 • CRM Activo</p>
               </div>
             </div>
           </div>
         )}
       </main>
+
+      {/* Prospecto Registration Popup */}
+      {showProspectoPopup && (
+        <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Registro de Cliente</h3>
+            <p className="text-xs text-slate-400 mb-6">Para llevar un orden, por favor dinos a quién le envías esta cotización.</p>
+            <div className="space-y-4">
+              <input
+                placeholder="Nombre del Cliente"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:border-koppara-green"
+                value={prospectoTemp.nombre}
+                onChange={e => setProspectoTemp({ ...prospectoTemp, nombre: e.target.value })}
+              />
+              <input
+                placeholder="WhatsApp (Ej: 4771234567)"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:border-koppara-green"
+                value={prospectoTemp.telefono}
+                onChange={e => setProspectoTemp({ ...prospectoTemp, telefono: e.target.value })}
+              />
+              <button
+                onClick={handleShareWithCrm}
+                className="w-full bg-koppara-green text-white py-4 rounded-xl font-bold shadow-lg shadow-koppara-green/20"
+              >
+                Abrir WhatsApp y Registrar
+              </button>
+              <button onClick={() => setShowProspectoPopup(false)} className="w-full text-slate-400 text-xs font-bold py-2">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cart Drawer */}
       {isCartOpen && (
@@ -835,7 +1096,7 @@ export default function App() {
               <div className="flex justify-between items-end mb-6"><span className="text-slate-400 font-bold uppercase text-[10px]">Total</span><span className="text-4xl font-bold text-koppara-gray">{formatCurrency(cartTotal)}</span></div>
               <button
                 disabled={cart.length === 0}
-                onClick={handleWhatsAppCheckout}
+                onClick={handleShareWithCrm}
                 className="w-full bg-koppara-green text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl uppercase tracking-widest text-xs"
               >
                 <MessageCircle size={22} /> Cerrar Venta WhatsApp
@@ -845,81 +1106,88 @@ export default function App() {
         </div>
       )}
 
-      {isDevHost && isAdminOpen && <AdminPanel onClose={() => setIsAdminOpen(false)} />}
-      {isPdfModalOpen && (
-        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-lg rounded-lg shadow-md border border-slate-100">
-            <button onClick={() => setIsPdfModalOpen(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><X size={24} /></button>
-            <div className="text-center mb-8">
-              <KopparaLogo className="h-10 mx-auto mb-5" />
-              <h2 className="text-2xl font-bold text-koppara-gray">Descargar Catalogo PDF</h2>
-              <p className="text-slate-400 text-sm mt-2">Personaliza tu portada antes de generar el PDF.</p>
-            </div>
-
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Nombre de la distribuidora"
-                className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-4 outline-none focus:border-koppara-green transition"
-                value={pdfNombre}
-                onChange={(e) => setPdfNombre(e.target.value)}
-              />
-              <input
-                type="tel"
-                placeholder="WhatsApp"
-                className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-4 outline-none focus:border-koppara-green transition"
-                value={pdfWhatsapp}
-                onChange={(e) => setPdfWhatsapp(e.target.value)}
-              />
-              <button
-                onClick={descargarCatalogoPDF}
-                disabled={pdfLoading}
-                className="w-full bg-koppara-green text-white py-4 rounded-xl font-bold shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {pdfLoading ? <Loader2 className="animate-spin" /> : <Download size={18} />}
-                {pdfLoading ? 'Generando PDF...' : 'Descargar Catalogo PDF'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />}
       {selectedCheckoutPlan && <CheckoutModal plan={selectedCheckoutPlan.name} precio={selectedCheckoutPlan.price} codigoReferido={referralCode} onClose={() => setSelectedCheckoutPlan(null)} onSuccess={handleCheckoutSuccess} />}
       {selectedProduct && <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={handleAddToCart} />}
+
+      {
+        isPdfModalOpen && (
+          <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fadeIn">
+            <div className="bg-white w-full max-w-lg rounded-lg shadow-md border border-slate-100">
+              <button onClick={() => setIsPdfModalOpen(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><X size={24} /></button>
+              <div className="text-center mb-8">
+                <KopparaLogo className="h-10 mx-auto mb-5" />
+                <h2 className="text-2xl font-bold text-koppara-gray">Descargar Catalogo PDF</h2>
+                <p className="text-slate-400 text-sm mt-2">Personaliza tu portada antes de generar el PDF.</p>
+              </div>
+
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Nombre de la distribuidora"
+                  className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-4 outline-none focus:border-koppara-green transition"
+                  value={pdfNombre}
+                  onChange={(e) => setPdfNombre(e.target.value)}
+                />
+                <input
+                  type="tel"
+                  placeholder="WhatsApp"
+                  className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-4 outline-none focus:border-koppara-green transition"
+                  value={pdfWhatsapp}
+                  onChange={(e) => setPdfWhatsapp(e.target.value)}
+                />
+                <button
+                  onClick={descargarCatalogoPDF}
+                  disabled={pdfLoading}
+                  className="w-full bg-koppara-green text-white py-4 rounded-xl font-bold shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {pdfLoading ? <Loader2 className="animate-spin" /> : <Download size={18} />}
+                  {pdfLoading ? 'Generando PDF...' : 'Descargar Catalogo PDF'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+      {/* Removed duplicate modals here */}
 
       <footer className="py-20 bg-koppara-lightGray text-center mt-20">
         <KopparaLogo className="h-10 mx-auto mb-6 opacity-30 grayscale" />
         <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2024 Koppara México • Luxury Experience</p>
       </footer>
       {/* Notification List Modal if Bell Clicked */}
-      {unreadNotif === 0 && notificaciones.length > 0 && (
-        <div className="fixed bottom-24 right-10 z-[200] w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 animate-slideUp">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-bold text-slate-800">Avisos Recientes</h4>
-            <button onClick={() => setNotificaciones([])} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
-          </div>
-          <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-            {notificaciones.map(n => (
-              <div key={n.id} className={`p-3 rounded-2xl border ${n.categoria === 'urgente' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${n.categoria === 'urgente' ? 'bg-red-500 text-white' : 'bg-koppara-green text-white'
-                    }`}>{n.categoria}</span>
-                  <span className="text-[10px] text-slate-400 font-medium">{new Date(n.created_at).toLocaleDateString()}</span>
+      {
+        unreadNotif === 0 && notificaciones.length > 0 && (
+          <div className="fixed bottom-24 right-10 z-[200] w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 animate-slideUp">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-bold text-slate-800">Avisos Recientes</h4>
+              <button onClick={() => setNotificaciones([])} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+            </div>
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+              {notificaciones.map(n => (
+                <div key={n.id} className={`p-3 rounded-2xl border ${n.categoria === 'urgente' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${n.categoria === 'urgente' ? 'bg-red-500 text-white' : 'bg-koppara-green text-white'
+                      }`}>{n.categoria}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{new Date(n.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="font-bold text-xs text-slate-800">{n.titulo}</div>
+                  <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">{n.cuerpo}</p>
                 </div>
-                <div className="font-bold text-xs text-slate-800">{n.titulo}</div>
-                <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">{n.cuerpo}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {currentView === 'admin' && isAdmin && (
-        <AdminPanel
-          onClose={() => setCurrentView('catalog')}
-          descargarPDF={() => descargarCatalogoPDF(true)}
-        />
-      )}
+      {
+        currentView === 'admin' && isAdmin && (
+          <AdminPanel
+            onClose={() => setCurrentView('catalog')}
+            descargarPDF={() => descargarCatalogoPDF(true)}
+          />
+        )
+      }
     </div>
   );
 }

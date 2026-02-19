@@ -30,3 +30,5 @@ yarn-debug.log*
 
 # Supabase
 .supabase/.env.tsx 
+.vercel
+.env*.local

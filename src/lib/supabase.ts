@@ -56,12 +56,24 @@ export interface Distribuidora {
 export interface Lead {
   id: string;
   distribuidora_id: string;
+  prospecto_id?: string;
   nombre_cliente: string;
   whatsapp_cliente: string;
   productos: any;
   monto: number;
   fecha_pedido: string;
   estado: 'pendiente' | 'entregado' | 'cancelado';
+  created_at: string;
+}
+
+export interface Prospecto {
+  id: string;
+  distribuidora_id: string;
+  nombre: string;
+  telefono: string;
+  estado: 'interesado' | 'en_proceso' | 'venta_cerrada';
+  ultima_interaccion: string;
+  created_at: string;
 }
 
 export interface Notificacion {

@@ -3,9 +3,12 @@ import { supabase, Producto, Notificacion } from '../lib/supabase';
 import {
   X, Save, RefreshCcw, Plus, Bell, Package,
   FileText, Megaphone, Send, Trash2, Eye, EyeOff,
-  TrendingUp, Users, DollarSign, Upload, MessageCircle
+  TrendingUp, Users, DollarSign, Upload, MessageCircle,
+  Activity, Award, Target, BarChart3, ChevronRight,
+  Clock
 } from 'lucide-react';
 import { enviarNotificacion } from '../services/notifications.service';
+import { obtenerEstadisticasAdmin, PromotoraStats, ProductStat } from '../services/admin.service';
 
 const CATEGORIAS = ['Relax', 'Facial', 'Corporal', 'Especializado', 'Capilar', 'Eco'];
 
@@ -19,9 +22,10 @@ type AdminPanelProps = {
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync' | 'stats'>('products');
   const [items, setItems] = useState<AdminProductForm[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   // Notification State
@@ -49,7 +53,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF })
 
   useEffect(() => {
     loadProducts();
+    loadStats();
   }, []);
+
+  const loadStats = async () => {
+    const data = await obtenerEstadisticasAdmin();
+    setStats(data);
+  };
 
   const handleProductChange = (id: string, field: keyof Producto, value: any) => {
     setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
@@ -103,6 +113,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF })
           <aside className="w-24 md:w-64 border-r bg-slate-50/50 flex flex-col p-4 gap-2">
             {[
               { id: 'products', icon: Package, label: 'Productos' },
+              { id: 'stats', icon: BarChart3, label: 'Estadísticas' },
               { id: 'notifications', icon: Megaphone, label: 'Avisos' },
               { id: 'sync', icon: RefreshCcw, label: 'Sincronización' }
             ].map(tab => (
@@ -328,6 +339,152 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF })
                       >
                         <RefreshCcw size={20} /> Actualizar Catálogo Global
                       </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'stats' && stats && (
+              <div className="space-y-10 animate-fadeIn">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div className="w-12 h-12 bg-koppara-green/10 text-koppara-green rounded-2xl flex items-center justify-center mb-4">
+                      <Activity size={24} />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conversión Global</p>
+                    <h4 className="text-3xl font-black text-slate-800 mt-1">{stats.global.conversionPromedio.toFixed(1)}%</h4>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mb-4">
+                      <DollarSign size={24} />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monto en Cotizaciones</p>
+                    <h4 className="text-3xl font-black text-slate-800 mt-1">${(stats.global.totalMonto / 1000).toFixed(1)}k</h4>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-4">
+                      <Target size={24} />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Ventas</p>
+                    <h4 className="text-3xl font-black text-slate-800 mt-1">{stats.global.totalVentas}</h4>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-2xl flex items-center justify-center mb-4">
+                      <Users size={24} />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Socias Activas</p>
+                    <h4 className="text-3xl font-black text-slate-800 mt-1">{stats.promotoras.length}</h4>
+                  </div>
+                </div>
+
+                <div className="grid lg:grid-cols-3 gap-8">
+                  {/* Eficiencia por Promotora */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                      Eficiencia por Promotora
+                    </h3>
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
+                      <div className="p-8 border-b bg-slate-50/50">
+                        <p className="text-xs text-slate-400">Embudo de ventas y tasa de efectividad por socia.</p>
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {stats.promotoras.map((p: any) => (
+                          <div key={p.id} className="p-6 hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400">
+                                  {p.nombre.charAt(0)}
+                                </div>
+                                <div>
+                                  <h5 className="font-bold text-slate-800">{p.nombre}</h5>
+                                  <p className="text-[10px] text-slate-400 font-mono uppercase">ID: {p.id.slice(0, 8)}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className={`text-[10px] font-black px-3 py-1 rounded-full ${p.slaIndex < 70 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                  SLA: {p.slaIndex.toFixed(0)}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                              <div className="bg-slate-50 p-3 rounded-2xl text-center">
+                                <p className="text-[9px] font-black text-slate-400 uppercase">Contactos</p>
+                                <p className="font-bold text-slate-700">{p.contactos}</p>
+                              </div>
+                              <div className="bg-slate-50 p-3 rounded-2xl text-center">
+                                <p className="text-[9px] font-black text-slate-400 uppercase">Compartidos</p>
+                                <p className="font-bold text-slate-700">{p.compartidos}</p>
+                              </div>
+                              <div className="bg-koppara-green/5 p-3 rounded-2xl text-center">
+                                <p className="text-[9px] font-black text-koppara-green uppercase">Ventas</p>
+                                <p className="font-bold text-koppara-green">{p.ventas}</p>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                                <span>Conversión</span>
+                                <span>{p.conversion.toFixed(1)}%</span>
+                              </div>
+                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-koppara-green transition-all"
+                                  style={{ width: `${p.conversion}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ranking y Productos */}
+                  <div className="space-y-8">
+                    <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-10 opacity-10">
+                        <Award size={100} />
+                      </div>
+                      <h3 className="text-xl font-bold mb-6 flex items-center gap-2 relative z-10">
+                        <Award className="text-amber-400" /> Líderes del Mes
+                      </h3>
+                      <div className="space-y-4 relative z-10">
+                        {stats.promotoras.sort((a: any, b: any) => b.montoTotal - a.montoTotal).slice(0, 3).map((p: any, idx: number) => (
+                          <div key={p.id} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-black text-white/20 italic">0{idx + 1}</span>
+                              <span className="font-bold text-sm truncate w-24">{p.nombre.split(' ')[0]}</span>
+                            </div>
+                            <span className="text-xs font-mono font-bold text-amber-400">${(p.montoTotal / 1000).toFixed(1)}k</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
+                      <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <TrendingUp className="text-koppara-green" /> Top Productos
+                      </h3>
+                      <div className="space-y-4">
+                        {stats.productos.slice(0, 5).map((prod: any) => (
+                          <div key={prod.nombre} className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-slate-700">{prod.nombre}</span>
+                              <span className="text-[10px] text-slate-400 uppercase font-bold">{prod.cantidad} cotizados</span>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-200" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-red-50 p-6 rounded-[2rem] border border-red-100">
+                      <h4 className="text-xs font-black text-red-600 uppercase mb-4 flex items-center gap-2">
+                        <Clock size={14} /> Alerta de Seguimiento
+                      </h4>
+                      <p className="text-[11px] text-red-500/80 leading-relaxed">
+                        {stats.promotoras.filter((p: any) => p.slaIndex < 50).length} promotoras tienen un índice de seguimiento crítico (menor al 50%). Se recomienda capacitación inmediata.
+                      </p>
                     </div>
                   </div>
                 </div>
