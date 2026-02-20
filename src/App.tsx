@@ -320,6 +320,9 @@ const CheckoutModal: React.FC<{
 
 // --- MAIN APP ---
 
+// URL Fija del Catálogo Maestro en Supabase Storage
+const MASTER_CATALOG_URL = 'https://rgrdogwwczlxakeggnbu.supabase.co/storage/v1/object/public/assets/catalogo_koppara_2026.pdf';
+
 export default function App() {
   const [products, setProducts] = useState<Product[]>(FALLBACK_PRODUCTS);
   const [user, setUser] = useState<any>(null);
@@ -514,7 +517,7 @@ export default function App() {
       }
     }
 
-    const message = `¡Hola ${prospectoTemp.nombre}! 👋 Soy ${distributor?.nombre || 'tu distribuidora'} de Koppara México. Es un gusto saludarte.\n\nAquí tienes el desglose de lo que platicamos:\n\n${cart.map(i => `✅ ${i.name} (${i.quantity}) - ${formatCurrency(i.price)}`).join('\n')}\n\n*Total a pagar: ${formatCurrency(cartTotal)}*\n\n¿Quieres que agendemos tu entrega hoy mismo? ✨`;
+    const message = `¡Hola ${prospectoTemp.nombre}! 👋 Soy ${distributor?.nombre || 'tu distribuidora'} de Koppara México. Es un gusto saludarte.\n\nAquí tienes el desglose de lo que platicamos:\n\n${cart.map(i => `✅ ${i.name} (${i.quantity}) - ${formatCurrency(i.price)}`).join('\n')}\n\n*Total a pagar: ${formatCurrency(cartTotal)}*\n\n📂 *Descarga nuestro catálogo completo aquí:* ${MASTER_CATALOG_URL}\n\n¿Quieres que agendemos tu entrega hoy mismo? ✨`;
     window.open(getWhatsAppLink(prospectoTemp.telefono, message), '_blank');
     setShowProspectoPopup(false);
     setCart([]);
@@ -1144,29 +1147,24 @@ export default function App() {
                 <p className="text-slate-400 text-sm mt-2">Personaliza tu portada antes de generar el PDF.</p>
               </div>
 
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Nombre de la distribuidora"
-                  className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-4 outline-none focus:border-koppara-green transition"
-                  value={pdfNombre}
-                  onChange={(e) => setPdfNombre(e.target.value)}
-                />
-                <input
-                  type="tel"
-                  placeholder="WhatsApp"
-                  className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-4 outline-none focus:border-koppara-green transition"
-                  value={pdfWhatsapp}
-                  onChange={(e) => setPdfWhatsapp(e.target.value)}
-                />
-                <button
-                  onClick={descargarCatalogoPDF}
-                  disabled={pdfLoading}
-                  className="w-full bg-koppara-green text-white py-4 rounded-xl font-bold shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {pdfLoading ? <Loader2 className="animate-spin" /> : <Download size={18} />}
-                  {pdfLoading ? 'Generando PDF...' : 'Descargar Catalogo PDF'}
-                </button>
+              <div className="space-y-6">
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-6">
+                  <p className="text-sm text-slate-500 mb-4 font-medium leading-relaxed">
+                    Hemos optimizado el sistema. Ahora puedes descargar el <b>Catálogo Maestro 2026</b> de forma instantánea. No necesitas esperar a que se genere.
+                  </p>
+                  <a
+                    href={MASTER_CATALOG_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-koppara-green text-white py-5 rounded-xl font-bold shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
+                  >
+                    <Download size={20} /> Descargar Catálogo Maestro
+                  </a>
+                </div>
+
+                <p className="text-[10px] text-slate-300 text-center px-8">
+                  * Este catálogo contiene todos los productos publicados y precios vigentes actualizados por la central.
+                </p>
               </div>
             </div>
           </div>
@@ -1208,6 +1206,7 @@ export default function App() {
           <AdminPanel
             onClose={() => setCurrentView('catalog')}
             descargarPDF={() => descargarCatalogoPDF(true)}
+            catalogoUrl={MASTER_CATALOG_URL}
           />
         )
       }

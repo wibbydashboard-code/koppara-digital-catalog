@@ -19,10 +19,13 @@ type AdminProductForm = Producto & {
 type AdminPanelProps = {
   onClose: () => void;
   descargarPDF: () => Promise<void>;
+  catalogoUrl: string;
 };
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, catalogoUrl }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync' | 'stats'>('products');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [items, setItems] = useState<AdminProductForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
@@ -85,6 +88,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF })
       setNotifForm({ titulo: '', cuerpo: '', categoria: 'promocion', nivel_objetivo: 'todas' });
     } catch (err: any) {
       setMessage({ text: `Error: ${err.message}`, type: 'error' });
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      setMessage({ text: 'Error: Solo se permiten archivos PDF', type: 'error' });
+      return;
+    }
+
+    setUploading(true);
+    setMessage(null);
+
+    try {
+      const fileName = 'catalogo_koppara_2026.pdf';
+      const { error } = await supabase.storage
+        .from('assets')
+        .upload(fileName, file, {
+          upsert: true,
+          contentType: 'application/pdf',
+          cacheControl: '3600'
+        });
+
+      if (error) {
+        if (error.message.includes('bucket not found')) {
+          const { error: errorFallback } = await supabase.storage
+            .from('public')
+            .upload(fileName, file, { upsert: true });
+          if (errorFallback) throw errorFallback;
+        } else {
+          throw error;
+        }
+      }
+
+      setMessage({ text: '✅ Catálogo subido y sincronizado correctamente', type: 'success' });
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setMessage({ text: `❌ Error al subir: ${err.message}`, type: 'error' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -331,14 +377,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF })
                       <FileText size={28} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-slate-800">Catálogo PDF Maestro</h4>
-                      <p className="text-sm text-slate-500 mt-2 mb-6">Regenera el archivo PDF global con los precios actuales y productos publicados. El archivo incluirá el logo oficial de 54px y formato compacto de 2 columnas.</p>
-                      <button
-                        onClick={descargarPDF}
-                        className="bg-red-500 text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-red-200 hover:bg-red-600 transition-all flex items-center gap-3"
-                      >
-                        <RefreshCcw size={20} /> Actualizar Catálogo Global
-                      </button>
+                      <h4 className="text-xl font-bold text-slate-800">Catálogo Maestro Centralizado</h4>
+                      <p className="text-sm text-slate-500 mt-2 mb-6">
+                        Sube una nueva versión del catálogo PDF. Este archivo se distribuirá automáticamente a todas las socias.
+                        Actualizar aquí ahorra tiempo de carga y garantiza que todos compartan la misma información.
+                      </p>
+
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          accept=".pdf"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className={`bg-koppara-green text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-koppara-green/20 hover:scale-105 transition-all flex items-center gap-3 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <Upload size={20} /> {uploading ? 'Subiendo...' : 'Subir Nuevo Catálogo Maestro (PDF)'}
+                        </button>
+
+                        <a
+                          href={catalogoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-slate-100 text-slate-600 px-8 py-4 rounded-full font-bold hover:bg-slate-200 transition-all flex items-center gap-3"
+                        >
+                          <Eye size={20} /> Ver Actual
+                        </a>
+                      </div>
+
+                      <p className="text-[10px] text-slate-400 mt-4 font-mono italic">
+                        Ruta Destino: storage/assets/catalogo_koppara_2026.pdf
+                      </p>
                     </div>
                   </div>
                 </div>
