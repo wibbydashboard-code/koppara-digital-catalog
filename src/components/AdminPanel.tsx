@@ -505,12 +505,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                 <h3 className="text-xl font-bold text-slate-800 tracking-tight">Sincronización del Sistema</h3>
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
                   <div className="flex items-start gap-6">
-                    <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shrink-0">
-                      <FileText size={28} />
+                    <div className="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center shrink-0">
+                      <FileText size={22} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-slate-800">Catálogo Maestro Centralizado</h4>
-                      <p className="text-sm text-slate-500 mt-2 mb-6">
+                      <h4 className="text-sm font-bold text-slate-800">Catálogo Maestro Centralizado</h4>
+                      <p className="text-xs text-slate-500 mt-1 mb-4">
                         Sube una nueva versión del catálogo PDF. Este archivo se distribuirá automáticamente a todas las socias.
                         Actualizar aquí ahorra tiempo de carga y garantiza que todos compartan la misma información.
                       </p>
@@ -534,26 +534,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploading}
-                          className={`bg-koppara-green text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-koppara-green/20 hover:scale-105 transition-all flex items-center gap-3 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`bg-koppara-green text-white px-5 py-2.5 rounded-xl font-bold shadow-md shadow-koppara-green/20 hover:scale-[1.02] transition-all flex items-center gap-2 text-xs ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          <Upload size={20} /> {uploading ? 'Subiendo...' : 'Subir Nuevo Catálogo Maestro (PDF)'}
+                          <Upload size={16} /> {uploading ? 'Subiendo...' : 'Subir Nuevo Catálogo (PDF)'}
                         </button>
 
                         <a
                           href={catalogoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bg-slate-100 text-slate-600 px-8 py-4 rounded-full font-bold hover:bg-slate-200 transition-all flex items-center gap-3"
+                          className="bg-slate-100 text-slate-600 px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2"
                         >
-                          <Eye size={20} /> Ver Actual
+                          <Eye size={16} /> Ver Actual
                         </a>
 
                         <button
                           onClick={handleRemoveCatalog}
                           disabled={uploading}
-                          className="bg-red-50 text-red-500 px-6 py-4 rounded-full font-bold hover:bg-red-100 transition-all flex items-center gap-2"
+                          className="bg-red-50 text-red-500 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-red-100 transition-all flex items-center gap-2"
                         >
-                          <Trash2 size={18} /> Eliminar
+                          <Trash2 size={14} /> Eliminar
                         </button>
                       </div>
 
@@ -567,59 +567,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
             )}
 
             {activeTab === 'stats' && stats && (
-              <div className="space-y-10 animate-fadeIn">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <div className="w-12 h-12 bg-koppara-green/10 text-koppara-green rounded-2xl flex items-center justify-center mb-4">
-                      <Activity size={24} />
+              <div className="space-y-6 animate-fadeIn">
+                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Estadísticas de Rendimiento</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="w-9 h-9 bg-koppara-green/10 text-koppara-green rounded-lg flex items-center justify-center mb-3">
+                      <Activity size={18} />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conversión Global</p>
-                    <h4 className="text-3xl font-black text-slate-800 mt-1">{stats.global.conversionPromedio.toFixed(1)}%</h4>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Conversión Global</p>
+                    <h4 className="text-xl font-black text-slate-800 mt-0.5">{stats.global.conversionPromedio.toFixed(1)}%</h4>
                   </div>
-                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mb-4">
-                      <DollarSign size={24} />
+                  <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="w-9 h-9 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center mb-3">
+                      <DollarSign size={18} />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monto en Cotizaciones</p>
-                    <h4 className="text-3xl font-black text-slate-800 mt-1">${(stats.global.totalMonto / 1000).toFixed(1)}k</h4>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto en Cotizaciones</p>
+                    <h4 className="text-xl font-black text-slate-800 mt-0.5">${(stats.global.totalMonto / 1000).toFixed(1)}k</h4>
                   </div>
-                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-4">
-                      <Target size={24} />
+                  <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="w-9 h-9 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center mb-3">
+                      <Target size={18} />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Ventas</p>
-                    <h4 className="text-3xl font-black text-slate-800 mt-1">{stats.global.totalVentas}</h4>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Ventas</p>
+                    <h4 className="text-xl font-black text-slate-800 mt-0.5">{stats.global.totalVentas}</h4>
                   </div>
-                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-2xl flex items-center justify-center mb-4">
-                      <Users size={24} />
+                  <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="w-9 h-9 bg-purple-50 text-purple-500 rounded-lg flex items-center justify-center mb-3">
+                      <Users size={18} />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Socias Activas</p>
-                    <h4 className="text-3xl font-black text-slate-800 mt-1">{stats.promotoras.length}</h4>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Socias Activas</p>
+                    <h4 className="text-xl font-black text-slate-800 mt-0.5">{stats.promotoras.length}</h4>
                   </div>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-8">
+                <div className="grid lg:grid-cols-3 gap-5">
                   {/* Eficiencia por Promotora */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <div className="lg:col-span-2 space-y-4">
+                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                       Eficiencia por Promotora
                     </h3>
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-                      <div className="p-8 border-b bg-slate-50/50">
-                        <p className="text-xs text-slate-400">Embudo de ventas y tasa de efectividad por socia.</p>
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                      <div className="px-5 py-3 border-b bg-slate-50/50">
+                        <p className="text-[10px] text-slate-400">Embudo de ventas y tasa de efectividad por socia.</p>
                       </div>
                       <div className="divide-y divide-slate-100">
                         {stats.promotoras.map((p: any) => (
-                          <div key={p.id} className="p-6 hover:bg-slate-50 transition-colors">
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400">
+                          <div key={p.id} className="p-4 hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400 text-xs">
                                   {p.nombre.charAt(0)}
                                 </div>
                                 <div>
-                                  <h5 className="font-bold text-slate-800">{p.nombre}</h5>
-                                  <p className="text-[10px] text-slate-400 font-mono uppercase">ID: {p.id.slice(0, 8)}</p>
+                                  <h5 className="font-bold text-slate-800 text-xs">{p.nombre}</h5>
+                                  <p className="text-[9px] text-slate-400 font-mono uppercase">ID: {p.id.slice(0, 8)}</p>
                                 </div>
                               </div>
                               <div className="text-right">
@@ -628,18 +629,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                                 </span>
                               </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 mb-4">
-                              <div className="bg-slate-50 p-3 rounded-2xl text-center">
-                                <p className="text-[9px] font-black text-slate-400 uppercase">Contactos</p>
-                                <p className="font-bold text-slate-700">{p.contactos}</p>
+                            <div className="grid grid-cols-3 gap-3 mb-3">
+                              <div className="bg-slate-50 p-2 rounded-lg text-center">
+                                <p className="text-[8px] font-black text-slate-400 uppercase">Contactos</p>
+                                <p className="font-bold text-slate-700 text-xs">{p.contactos}</p>
                               </div>
-                              <div className="bg-slate-50 p-3 rounded-2xl text-center">
-                                <p className="text-[9px] font-black text-slate-400 uppercase">Compartidos</p>
-                                <p className="font-bold text-slate-700">{p.compartidos}</p>
+                              <div className="bg-slate-50 p-2 rounded-lg text-center">
+                                <p className="text-[8px] font-black text-slate-400 uppercase">Compartidos</p>
+                                <p className="font-bold text-slate-700 text-xs">{p.compartidos}</p>
                               </div>
-                              <div className="bg-koppara-green/5 p-3 rounded-2xl text-center">
-                                <p className="text-[9px] font-black text-koppara-green uppercase">Ventas</p>
-                                <p className="font-bold text-koppara-green">{p.ventas}</p>
+                              <div className="bg-koppara-green/5 p-2 rounded-lg text-center">
+                                <p className="text-[8px] font-black text-koppara-green uppercase">Ventas</p>
+                                <p className="font-bold text-koppara-green text-xs">{p.ventas}</p>
                               </div>
                             </div>
                             <div className="space-y-1">
@@ -661,20 +662,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                   </div>
 
                   {/* Ranking y Productos */}
-                  <div className="space-y-8">
-                    <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-10 opacity-10">
-                        <Award size={100} />
+                  <div className="space-y-5">
+                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-6 opacity-10">
+                        <Award size={60} />
                       </div>
-                      <h3 className="text-xl font-bold mb-6 flex items-center gap-2 relative z-10">
-                        <Award className="text-amber-400" /> Líderes del Mes
+                      <h3 className="text-sm font-bold mb-4 flex items-center gap-2 relative z-10">
+                        <Award className="text-amber-400" size={16} /> Líderes del Mes
                       </h3>
-                      <div className="space-y-4 relative z-10">
+                      <div className="space-y-3 relative z-10">
                         {stats.promotoras.sort((a: any, b: any) => b.montoTotal - a.montoTotal).slice(0, 3).map((p: any, idx: number) => (
-                          <div key={p.id} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg font-black text-white/20 italic">0{idx + 1}</span>
-                              <span className="font-bold text-sm truncate w-24">{p.nombre.split(' ')[0]}</span>
+                          <div key={p.id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-white/20 italic">0{idx + 1}</span>
+                              <span className="font-bold text-xs truncate w-20">{p.nombre.split(' ')[0]}</span>
                             </div>
                             <span className="text-xs font-mono font-bold text-amber-400">${(p.montoTotal / 1000).toFixed(1)}k</span>
                           </div>
@@ -682,16 +683,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                       </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
-                      <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <TrendingUp className="text-koppara-green" /> Top Productos
+                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                      <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <TrendingUp className="text-koppara-green" size={16} /> Top Productos
                       </h3>
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {stats.productos.slice(0, 5).map((prod: any) => (
                           <div key={prod.nombre} className="flex items-center justify-between">
                             <div className="flex flex-col">
-                              <span className="text-sm font-bold text-slate-700">{prod.nombre}</span>
-                              <span className="text-[10px] text-slate-400 uppercase font-bold">{prod.cantidad} cotizados</span>
+                              <span className="text-xs font-bold text-slate-700">{prod.nombre}</span>
+                              <span className="text-[9px] text-slate-400 uppercase font-bold">{prod.cantidad} cotizados</span>
                             </div>
                             <ChevronRight size={16} className="text-slate-200" />
                           </div>
@@ -699,7 +700,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                       </div>
                     </div>
 
-                    <div className="bg-red-50 p-6 rounded-[2rem] border border-red-100">
+                    <div className="bg-red-50 p-4 rounded-xl border border-red-100">
                       <h4 className="text-xs font-black text-red-600 uppercase mb-4 flex items-center gap-2">
                         <Clock size={14} /> Alerta de Seguimiento
                       </h4>
