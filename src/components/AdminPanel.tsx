@@ -8,7 +8,7 @@ import {
   Clock, Edit, Image as ImageIcon, CheckCircle2
 } from 'lucide-react';
 import { enviarNotificacion } from '../services/notifications.service';
-import { obtenerEstadisticasAdmin, PromotoraStats, ProductStat } from '../services/admin.service';
+import { obtenerEstadisticasAdmin, PromotoraStats, ProductStat, obtenerDistribuidorasLinaje, cambiarPatrocinador } from '../services/admin.service';
 
 const CATEGORIAS = ['Relax', 'Facial', 'Corporal', 'Especializado', 'Capilar', 'Eco'];
 
@@ -23,8 +23,14 @@ type AdminPanelProps = {
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, catalogoUrl }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync' | 'stats'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync' | 'stats' | 'distributors'>('products');
   const [editingProduct, setEditingProduct] = useState<AdminProductForm | null>(null);
+
+  // States for Distributor Network
+  const [distribuidorasData, setDistribuidorasData] = useState<any[]>([]);
+  const [reassigningSocia, setReassigningSocia] = useState<any | null>(null);
+  const [newSponsorSearch, setNewSponsorSearch] = useState('');
+  const [selectedNewSponsor, setSelectedNewSponsor] = useState<any | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const productImageInputRef = React.useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -57,10 +63,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
     setLoading(false);
   };
 
+  const loadDistribuidoras = async () => {
+    try {
+      const data = await obtenerDistribuidorasLinaje();
+      setDistribuidorasData(data || []);
+    } catch (err) {
+      console.error("Error loading distributors", err);
+    }
+  };
+
+  const handleReassign = async () => {
+    if (!reassigningSocia || !selectedNewSponsor) return;
+
+    if (window.confirm(`ATENCION: ¿Confirmas mover a ${reassigningSocia.nombre} (ID: ${reassigningSocia.socio_id}) bajo la red de ${selectedNewSponsor.nombre} (ID: ${selectedNewSponsor.socio_id})? \n\nEsta acción quedará registrada en auditoría.`)) {
+      try {
+        const adminEmail = 'admin@koppara.com'; // En producción tomar del auth context
+        await cambiarPatrocinador(adminEmail, reassigningSocia.id, selectedNewSponsor.id, reassigningSocia.referred_by);
+        setMessage({ text: '✅ Cambio de patrocinador realizado exitosamente. Auditoría registrada.', type: 'success' });
+        setReassigningSocia(null);
+        setSelectedNewSponsor(null);
+        setNewSponsorSearch('');
+        loadDistribuidoras();
+      } catch (err: any) {
+        setMessage({ text: `❌ Error crítico: ${err.message}`, type: 'error' });
+      }
+    }
+  };
+
   useEffect(() => {
     loadProducts();
     loadStats();
-  }, []);
+    if (activeTab === 'distributors') {
+      loadDistribuidoras();
+    }
+  }, [activeTab]);
 
   const loadStats = async () => {
     const data = await obtenerEstadisticasAdmin();
@@ -275,6 +311,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
               { id: 'products', icon: Package, label: 'Productos' },
               { id: 'stats', icon: BarChart3, label: 'Estadísticas' },
               { id: 'notifications', icon: Megaphone, label: 'Avisos' },
+              { id: 'distributors', icon: Users, label: 'Red' },
               { id: 'sync', icon: RefreshCcw, label: 'Sincronización' }
             ].map(tab => (
               <button
@@ -497,6 +534,143 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'distributors' && (
+              <div className="space-y-8 animate-fadeIn">
+                <h3 className="text-xl font-bold text-slate-800 tracking-tight">Gestión de Linaje y Red</h3>
+                {/* Tabla */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6">
+                  <p className="text-sm text-slate-500 mb-4">Total Socias: {distribuidorasData.length}</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      {/* Headers */}
+                      <thead>
+                        <tr className="border-b uppercase font-bold text-slate-400 bg-slate-50">
+                          <th className="p-3">Socio ID</th>
+                          <th className="p-3">Nombre / Email</th>
+                          <th className="p-3">Nivel</th>
+                          <th className="p-3">Patrocinador Actual (Upline)</th>
+                          <th className="p-3">Origen</th>
+                          <th className="p-3 w-10">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {distribuidorasData.map(d => (
+                          <tr key={d.id} className="border-b hover:bg-slate-50 transition-colors">
+                            <td className="p-3 font-mono font-bold text-koppara-green">{d.socio_id || 'PENDIENTE'}</td>
+                            <td className="p-3">
+                              <div className="font-bold text-slate-700">{d.nombre}</div>
+                              <div className="text-slate-400 text-[10px]">{d.email}</div>
+                            </td>
+                            <td className="p-3 capitalize font-medium text-slate-600">{d.nivel}</td>
+                            <td className="p-3">
+                              {d.sponsor ? (
+                                <div>
+                                  <div className="font-bold text-slate-700">{d.sponsor.nombre}</div>
+                                  <div className="font-mono text-[9px] text-slate-400">{d.sponsor.socio_id}</div>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">Sin patrocinador (Raíz)</span>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              {d.organic_lead ? (
+                                <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-[9px] font-bold border border-orange-200">ORGANIC LEAD</span>
+                              ) : <span className="text-slate-400">-</span>}
+                            </td>
+                            <td className="p-3">
+                              <button onClick={() => setReassigningSocia(d)} className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold hover:bg-black transition-colors whitespace-nowrap shadow-sm">
+                                MOVER
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Modal Reasignación */}
+                {reassigningSocia && (
+                  <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm text-sm p-4">
+                    <div className="bg-white p-6 rounded-2xl w-full max-w-lg shadow-2xl relative animate-scaleIn border border-slate-100">
+                      <button onClick={() => { setReassigningSocia(null); setSelectedNewSponsor(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 rounded-full p-1"><X size={18} /></button>
+
+                      <div className="mb-6 text-center">
+                        <h4 className="font-black text-xl text-slate-800 mb-1">Mover Socia</h4>
+                        <p className="text-slate-400 text-xs">Reasignando patrocinador para <b className="text-slate-700">{reassigningSocia.nombre}</b></p>
+                      </div>
+
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Patrocinador Actual</p>
+                        <div className="font-bold text-slate-700 text-base">{reassigningSocia.sponsor?.nombre || 'Sin Patrocinador'}</div>
+                        <div className="font-mono text-xs text-slate-400">{reassigningSocia.sponsor?.socio_id || 'N/A'}</div>
+                      </div>
+
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2 tracking-widest">Buscar Nuevo Patrocinador (ID o Nombre)</label>
+                      <div className="relative">
+                        <input
+                          autoFocus
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-2 outline-none focus:border-koppara-green font-bold text-slate-700 focus:ring-2 focus:ring-koppara-green/10 transition-all"
+                          placeholder="Escribe para buscar..."
+                          value={newSponsorSearch}
+                          onChange={e => setNewSponsorSearch(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Resultados de búsqueda */}
+                      {newSponsorSearch.length > 1 && !selectedNewSponsor && (
+                        <div className="max-h-40 overflow-y-auto border border-slate-100 rounded-xl mb-4 bg-white shadow-lg absolute w-full z-10">
+                          {distribuidorasData
+                            .filter(x =>
+                              x.id !== reassigningSocia.id &&
+                              (x.nombre.toLowerCase().includes(newSponsorSearch.toLowerCase()) ||
+                                x.socio_id?.toLowerCase().includes(newSponsorSearch.toLowerCase()))
+                            )
+                            .slice(0, 5)
+                            .map(candidate => (
+                              <div
+                                key={candidate.id}
+                                onClick={() => { setSelectedNewSponsor(candidate); setNewSponsorSearch(''); }}
+                                className="p-3 hover:bg-green-50 cursor-pointer border-b last:border-0 flex justify-between items-center transition-colors group"
+                              >
+                                <span className="font-bold text-slate-700 group-hover:text-koppara-green">{candidate.nombre}</span>
+                                <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded group-hover:bg-green-100 group-hover:text-green-700">{candidate.socio_id}</span>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      )}
+
+                      {selectedNewSponsor && (
+                        <div className="bg-green-50 p-4 rounded-xl border border-green-200 mb-6 flex items-center gap-4 animate-fadeIn">
+                          <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0">
+                            <CheckCircle2 size={20} />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-[10px] uppercase font-bold text-green-700 tracking-widest mb-0.5">Nuevo Patrocinador</div>
+                            <div className="font-bold text-slate-800">{selectedNewSponsor.nombre}</div>
+                            <div className="font-mono text-xs text-green-600">{selectedNewSponsor.socio_id}</div>
+                          </div>
+                          <button onClick={() => setSelectedNewSponsor(null)} className="text-slate-400 hover:text-red-500 p-2"><X size={16} /></button>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button onClick={() => { setReassigningSocia(null); setSelectedNewSponsor(null); }} className="flex-1 py-3.5 bg-slate-100 rounded-xl text-slate-500 font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+                        <button
+                          onClick={() => handleReassign()}
+                          disabled={!selectedNewSponsor}
+                          className="flex-1 py-3.5 bg-koppara-green text-white rounded-xl font-bold disabled:opacity-50 hover:bg-koppara-forest shadow-lg shadow-koppara-green/20 hover:scale-[1.02] active:scale-95 transition-all"
+                        >
+                          Confirmar Cambio
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

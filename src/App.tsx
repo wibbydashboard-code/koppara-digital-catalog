@@ -11,16 +11,15 @@ import { PRODUCTS as FALLBACK_PRODUCTS, CATEGORIES } from './constants';
 import { Product, Distributor, CartItem } from './types';
 import { supabase } from './lib/supabase';
 import { obtenerProductos } from './services/productos.service';
-import { loginConEmail, loginConTelefono, obtenerUsuarioActual, cerrarSesion } from './services/auth.service';
-import { guardarPerfilDistribuidora, generarCodigoReferido } from './services/distribuidora.service';
+import { loginConEmail, loginConTelefono, cerrarSesion } from './services/auth.service';
+import { guardarPerfilDistribuidora, generarCodigoReferido, obtenerPerfilDistribuidora } from './services/distribuidora.service';
 import { registrarLead } from './services/leads.service';
-import { Distribuidora, Lead } from './lib/supabase';
+import { Distribuidora, Lead, Notificacion, Prospecto } from './lib/supabase';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { AdminPanel } from './components/AdminPanel';
 import logoKoppara from './assets/logo_koppara.png';
 import { obtenerNotificaciones } from './services/notifications.service';
-import { Notificacion, Prospecto } from './lib/supabase';
 import {
   registrarProspectoYCompartir,
   obtenerProspectos,
@@ -133,6 +132,17 @@ const waitForImages = async (root: HTMLElement) => {
 
 // --- MODALS ---
 
+// P0-5 Vars de Entorno:
+// Para activar el login por WhatsApp/OTP: VITE_ENABLE_SMS_LOGIN=true
+const SMS_LOGIN_ENABLED =
+  typeof import.meta !== 'undefined' &&
+  (import.meta as any).env?.VITE_ENABLE_SMS_LOGIN === 'true';
+
+// Número de WhatsApp de soporte Koppara (para solicitudes de activación)
+const KOPPARA_WA_NUMBER =
+  (typeof import.meta !== 'undefined' &&
+    (import.meta as any).env?.VITE_KOPPARA_WA_NUMBER) || '524774166291';
+
 const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const [metodo, setMetodo] = useState<'email' | 'telefono'>('email');
   const [contacto, setContacto] = useState('');
@@ -146,7 +156,7 @@ const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
     try {
       if (metodo === 'email') {
         await loginConEmail(contacto);
-        setMensaje({ text: '✅ Revisa tu email para el link de acceso', type: 'success' });
+        setMensaje({ text: '✅ Revisa tu email — te enviamos un enlace de acceso. Haz clic en él para entrar.', type: 'success' });
       } else {
         await loginConTelefono(contacto);
         setMensaje({ text: '✅ Revisa tu WhatsApp para el código de acceso', type: 'success' });
@@ -155,7 +165,7 @@ const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
       const isNetworkError = error.message === 'Failed to fetch' || error.message?.includes('network');
       setMensaje({
         text: isNetworkError
-          ? '❌ Error de Conexión: El servidor no responde. Verifica si tu proyecto de Supabase está PAUSADO o si el ID es correcto.'
+          ? '❌ Sin conexión al servidor. Verifica tu internet o contacta soporte.'
           : '❌ Error: ' + error.message,
         type: 'error'
       });
@@ -168,35 +178,39 @@ const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fadeIn">
-      <div className="bg-white w-full max-w-md rounded-lg shadow-md border border-slate-100">
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><X size={24} /></button>
-        <div className="text-center mb-8">
-          <KopparaLogo className="h-10 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-koppara-gray">Acceso Distribuidora</h2>
-          <p className="text-slate-400 text-sm mt-2">Gestiona tu red y catálogo digital.</p>
+      {/* P1-FIX: relative en el contenedor para que button absolute se posicione bien */}
+      <div className="bg-white w-full max-w-md rounded-lg shadow-md border border-slate-100 relative p-8">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1.5"><X size={18} /></button>
+        <div className="text-center mb-6">
+          <KopparaLogo className="h-10 mx-auto mb-5" />
+          <h2 className="text-xl font-bold text-koppara-gray">Acceso Distribuidora</h2>
+          <p className="text-slate-400 text-sm mt-1">Gestiona tu red y catálogo digital.</p>
         </div>
 
-        <div className="flex gap-2 mb-6 bg-koppara-lightGray p-1 rounded-xl">
-          <button onClick={() => setMetodo('email')} className={`flex-1 py-3 rounded-lg text-xs font-bold transition-all ${metodo === 'email' ? 'bg-white text-koppara-green shadow-sm' : 'text-slate-400'}`}>Email</button>
-          <button onClick={() => setMetodo('telefono')} className={`flex-1 py-3 rounded-lg text-xs font-bold transition-all ${metodo === 'telefono' ? 'bg-white text-koppara-green shadow-sm' : 'text-slate-400'}`}>WhatsApp</button>
-        </div>
+        {/* Tab SMS — solo si VITE_ENABLE_SMS_LOGIN=true y Twilio configurado en Supabase */}
+        {SMS_LOGIN_ENABLED && (
+          <div className="flex gap-2 mb-5 bg-koppara-lightGray p-1 rounded-xl">
+            <button onClick={() => setMetodo('email')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${metodo === 'email' ? 'bg-white text-koppara-green shadow-sm' : 'text-slate-400'}`}>Email</button>
+            <button onClick={() => setMetodo('telefono')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${metodo === 'telefono' ? 'bg-white text-koppara-green shadow-sm' : 'text-slate-400'}`}>WhatsApp OTP</button>
+          </div>
+        )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-3">
           <input
             type={metodo === 'email' ? 'email' : 'tel'}
             placeholder={metodo === 'email' ? 'tu@email.com' : '+52 477 123 4567'}
-            className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-4 outline-none focus:border-koppara-green transition"
+            className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-3.5 outline-none focus:border-koppara-green transition text-sm"
             value={contacto}
             onChange={(e) => setContacto(e.target.value)}
             required
           />
-          <button type="submit" disabled={loading} className="w-full bg-koppara-green text-white py-4 rounded-xl font-bold shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition active:scale-95 disabled:opacity-50">
-            {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Empezar a Vender'}
+          <button type="submit" disabled={loading} className="w-full bg-koppara-green text-white py-4 rounded-xl font-bold shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition active:scale-95 disabled:opacity-50 text-sm flex items-center justify-center gap-2">
+            {loading ? <Loader2 className="animate-spin" size={20} /> : '✉️ Enviarme enlace de acceso'}
           </button>
         </form>
 
         {mensaje && (
-          <p className={`mt-6 text-center text-sm font-medium ${mensaje.type === 'success' ? 'text-koppara-forest' : 'text-red-500'}`}>
+          <p className={`mt-4 text-center text-sm font-medium leading-relaxed ${mensaje.type === 'success' ? 'text-koppara-forest' : 'text-red-500'}`}>
             {mensaje.text}
           </p>
         )}
@@ -205,28 +219,57 @@ const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
   );
 };
 
+// ─── P0-5: PAGO SIMULADO ELIMINADO ────────────────────────────────────────────
+// El CheckoutModal ya no simula un pago ni llama a onSuccess con "pago exitoso".
+// Redirige a WhatsApp para que el equipo Koppara procese la activación manualmente.
+// TODO(pago-real): integrar Mercado Pago / Stripe en handleSolicitarActivacion()
+// ──────────────────────────────────────────────────────────────────────────────
 const CheckoutModal: React.FC<{
   plan: string;
   precio: number;
   codigoReferido?: string | null;
   onClose: () => void;
   onSuccess: (data: any) => void;
-}> = ({ plan, precio, codigoReferido, onClose, onSuccess }) => {
+}> = ({ plan, precio, codigoReferido, onClose }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const [formData, setFormData] = useState({
-    nombre: '', email: '', telefono: '', direccion: '', ciudad: '', cp: '', metodo: 'card'
+    nombre: '', email: '', telefono: '', direccion: '', ciudad: '', cp: ''
   });
 
   const finalPrice = codigoReferido ? precio * 0.9 : precio;
+  const isFree = finalPrice === 0;
 
-  const handlePay = async () => {
+  // TODO(pago-real): Reemplazar esta función por la llamada al SDK de
+  // Mercado Pago o Stripe cuando esté listo. Por ahora redirige a
+  // WhatsApp para que el equipo Koppara procese la activación manualmente.
+  const handleSolicitarActivacion = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      onSuccess({ ...formData, plan, monto: finalPrice });
-    } catch (e) {
-      alert("Error al procesar el registro.");
+      let msg = '';
+      if (isFree) {
+        msg =
+          `\u00A1Hola Koppara! Quiero activar mi membresía *Gratuita* (Plan Básica).\n\n` +
+          `*Nombre:* ${formData.nombre}\n` +
+          `*Email:* ${formData.email}\n` +
+          `*WhatsApp:* ${formData.telefono}\n` +
+          `\n¡Estoy lista para empezar a vender!`;
+      } else {
+        msg =
+          `\u00A1Hola Koppara! Quiero activar mi membresía.\n\n` +
+          `*Plan:* ${plan}\n` +
+          `*Nombre:* ${formData.nombre}\n` +
+          `*Email:* ${formData.email}\n` +
+          `*WhatsApp:* ${formData.telefono}\n` +
+          `*Dir:* ${formData.direccion}, ${formData.ciudad} CP ${formData.cp}\n` +
+          `*Total a pagar:* $${finalPrice.toLocaleString('es-MX')}\n` +
+          (codigoReferido ? `*Código de referido:* ${codigoReferido}\n` : '') +
+          `\n¿Me pueden indicar cómo procesar mi pago? ¡Gracias!`;
+      }
+
+      window.open(`https://wa.me/${KOPPARA_WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+      setSent(true);
     } finally {
       setLoading(false);
     }
@@ -238,43 +281,67 @@ const CheckoutModal: React.FC<{
         <div className="bg-koppara-dark text-white p-10 md:w-1/3 flex flex-col justify-between">
           <div>
             <div className="mb-8 opacity-50"><KopparaLogo className="h-6 filter brightness-0 invert" /></div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-koppara-green mb-2">Registro de Socia</p>
-            <h3 className="text-2xl font-bold text-koppara-gray mb-6">Plan {plan}</h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-koppara-green mb-2">Solicitud de Activación</p>
+            <h3 className="text-2xl font-bold text-white mb-6">Plan {plan}</h3>
             <div className="space-y-4 mb-8 text-sm">
-              <div className="flex justify-between opacity-60"><span>Subtotal</span><span>{formatCurrency(precio)}</span></div>
-              {codigoReferido && (
+              <div className="flex justify-between opacity-60"><span>Subtotal</span><span>{isFree ? 'Gratis' : formatCurrency(precio)}</span></div>
+              {!isFree && codigoReferido && (
                 <div className="flex justify-between text-koppara-green"><span>Ref. 10% Off</span><span>-{formatCurrency(precio * 0.1)}</span></div>
               )}
               <div className="h-px bg-white/10 my-4" />
-              <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{formatCurrency(finalPrice)}</span></div>
+              <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{isFree ? '$0.00' : formatCurrency(finalPrice)}</span></div>
             </div>
           </div>
-          <div className="text-[10px] opacity-40 leading-relaxed">Pago seguro con encriptación de 256 bits.</div>
+          <div className="text-[10px] opacity-40 leading-relaxed">Te contactaremos para coordinar la activación.</div>
         </div>
 
         <div className="p-10 flex-1 overflow-y-auto">
           <div className="flex justify-between items-center mb-8">
             <div className="flex gap-2">
-              {[1, 2, 3].map(s => (
-                <div key={s} className={`h-1.5 w-8 rounded-full transition-all ${step >= s ? 'bg-koppara-green' : 'bg-slate-100'}`} />
+              {[1, isFree ? 1 : 2].map((s, i) => (
+                // Si es gratis, solo mostramos 1 bolita o la misma repetida pero inactiva si quisiéramos mantener layout
+                !isFree && <div key={i} className={`h-1.5 w-8 rounded-full transition-all ${step >= (i + 1) ? 'bg-koppara-green' : 'bg-slate-100'}`} />
               ))}
+              {isFree && <div className="h-1.5 w-8 rounded-full bg-koppara-green" />}
             </div>
             <button onClick={onClose} className="text-slate-300 hover:text-red-500"><X size={24} /></button>
           </div>
 
-          {step === 1 && (
+          {sent ? (
+            <div className="animate-fadeIn text-center py-8">
+              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 size={32} className="text-koppara-green" />
+              </div>
+              <h4 className="text-xl font-bold text-koppara-gray mb-2">¡Solicitud enviada!</h4>
+              <p className="text-sm text-slate-400 mb-6">Nuestro equipo te contactará por WhatsApp en las próximas horas para confirmar tu activación.</p>
+              <button onClick={onClose} className="bg-koppara-green text-white px-8 py-3 rounded-xl font-bold text-sm transition hover:bg-koppara-forest">
+                Volver al catálogo
+              </button>
+            </div>
+          ) : step === 1 ? (
             <div className="animate-fadeIn space-y-4">
               <h4 className="text-xl font-bold text-koppara-gray mb-2">Información Personal</h4>
               <input placeholder="Nombre Completo" className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-3" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} />
               <input placeholder="Email" type="email" className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-3" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
               <input placeholder="WhatsApp" type="tel" className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-3" value={formData.telefono} onChange={e => setFormData({ ...formData, telefono: e.target.value })} />
-              <button onClick={() => setStep(2)} disabled={!formData.nombre || !formData.email || !formData.telefono} className="w-full mt-4 bg-koppara-dark text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50">Continuar <ArrowRight size={18} /></button>
-            </div>
-          )}
 
-          {step === 2 && (
+              {isFree ? (
+                <button
+                  onClick={handleSolicitarActivacion}
+                  disabled={!formData.nombre || !formData.email || !formData.telefono || loading}
+                  className="w-full mt-4 bg-koppara-green text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-koppara-forest transition shadow-lg shadow-koppara-green/20"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : <MessageCircle size={18} />}
+                  {loading ? 'Procesando...' : 'Confirmar Registro Gratuito'}
+                </button>
+              ) : (
+                <button onClick={() => setStep(2)} disabled={!formData.nombre || !formData.email || !formData.telefono} className="w-full mt-4 bg-koppara-dark text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50">Continuar <ArrowRight size={18} /></button>
+              )}
+            </div>
+          ) : (
             <div className="animate-fadeIn space-y-4">
-              <h4 className="text-xl font-bold text-koppara-gray mb-2">Dirección de Envío</h4>
+              <h4 className="text-xl font-bold text-koppara-gray mb-2">Datos de Envío (opcional)</h4>
+              <p className="text-xs text-slate-400 -mt-2 mb-2">Los kits se coordinan con nuestro equipo vía WhatsApp.</p>
               <input placeholder="Calle y Número" className="w-full bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-3" value={formData.direccion} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
               <div className="grid grid-cols-2 gap-4">
                 <input placeholder="Ciudad" className="bg-koppara-lightGray border border-slate-100 rounded-xl px-4 py-3" value={formData.ciudad} onChange={e => setFormData({ ...formData, ciudad: e.target.value })} />
@@ -282,26 +349,16 @@ const CheckoutModal: React.FC<{
               </div>
               <div className="flex gap-4 mt-4">
                 <button onClick={() => setStep(1)} className="flex-1 border border-slate-100 py-4 rounded-xl text-slate-400">Volver</button>
-                <button onClick={() => setStep(3)} className="flex-[2] bg-koppara-dark text-white py-4 rounded-xl font-bold">Método de Pago</button>
+                {/* TODO(pago-real): Reemplazar este botón por el widget de Mercado Pago / Stripe */}
+                <button
+                  onClick={handleSolicitarActivacion}
+                  disabled={loading}
+                  className="flex-[2] bg-koppara-green text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-koppara-green/20 disabled:opacity-50 hover:bg-koppara-forest transition"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : <MessageCircle size={18} />}
+                  {loading ? 'Abriendo...' : 'Solicitar Activación vía WA'}
+                </button>
               </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="animate-fadeIn space-y-4">
-              <h4 className="text-xl font-bold text-koppara-gray mb-4">Finalizar Pago</h4>
-              <button onClick={() => setFormData({ ...formData, metodo: 'card' })} className={`w-full p-4 rounded-xl border flex items-center justify-between ${formData.metodo === 'card' ? 'border-koppara-green bg-koppara-green/5' : 'border-slate-100'}`}>
-                <div className="flex items-center gap-4"><CreditCard className="text-slate-400" /> <span className="text-sm font-bold">Tarjeta Crédito/Débito</span></div>
-                <div className={`w-4 h-4 rounded-full border-2 ${formData.metodo === 'card' ? 'border-koppara-green bg-koppara-green' : 'border-slate-200'}`} />
-              </button>
-              <button onClick={() => setFormData({ ...formData, metodo: 'transfer' })} className={`w-full p-4 rounded-xl border flex items-center justify-between ${formData.metodo === 'transfer' ? 'border-koppara-green bg-koppara-green/5' : 'border-slate-100'}`}>
-                <div className="flex items-center gap-4"><Wallet className="text-slate-400" /> <span className="text-sm font-bold">Transferencia SPEI</span></div>
-                <div className={`w-4 h-4 rounded-full border-2 ${formData.metodo === 'transfer' ? 'border-koppara-green bg-koppara-green' : 'border-slate-200'}`} />
-              </button>
-              <button onClick={handlePay} disabled={loading} className="w-full mt-6 bg-koppara-green text-white py-5 rounded-2xl font-bold shadow-xl shadow-koppara-green/20 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50">
-                {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
-                {loading ? 'Procesando...' : `Pagar ${formatCurrency(finalPrice)}`}
-              </button>
             </div>
           )}
         </div>
@@ -313,10 +370,17 @@ const CheckoutModal: React.FC<{
 // --- MAIN APP ---
 
 // URL Fija del Catálogo Maestro en Supabase Storage
+
+
+
+// --- MAIN APP ---
+
+// URL Fija del Catálogo Maestro en Supabase Storage
 const MASTER_CATALOG_URL = 'https://rgrdogwwczlxakeggnbu.supabase.co/storage/v1/object/public/catalogo-assets/catalogo_maestro_koppara.pdf';
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>(FALLBACK_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]); // Inicia vacío para distinguir carga
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [distributor, setDistributor] = useState<Distributor | null>(null);
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -351,25 +415,74 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const isDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
+  // ── P0-3 AUTH: onAuthStateChange ──────────────────────────────────────────
+  // Reemplaza el useEffect con getUser() puntual. Este listener se dispara:
+  //   1. Al cargar la app por primera vez.
+  //   2. Cuando la vendedora regresa del enlace magic-link.
+  //   3. Al cerrar sesión.
+  // Así el estado de user siempre está sincronizado con Supabase.
   useEffect(() => {
-    const checkRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        const authUser = session?.user ?? null;
+        setUser(authUser);
 
-        // Hardcoded admin for initial setup of owner
-        if (user?.email === 'wibbydashboard@gmail.com') {
-          setIsAdmin(true);
-        } else if (user?.user_metadata?.role === 'admin') {
-          setIsAdmin(true);
-        } else if (currentView === 'admin') {
-          setCurrentView(distributor ? 'socias' : 'catalog');
+        if (authUser) {
+          // ── P0-4: Cargar perfil de distribuidora ──────────────────────────
+          // Si la socia tiene sesión, buscamos su perfil en la tabla
+          // `distribuidoras` y lo cargamos en el estado global.
+          // Si no existe todavía, dejamos distributor en null y mostramos
+          // un mensaje instructivo en el header.
+          try {
+            const perfil = await obtenerPerfilDistribuidora(authUser.id);
+            if (perfil) {
+              // Mapear Distribuidora (DB) → Distributor (app state)
+              const mapped: Distributor = {
+                id: perfil.id,
+                name: perfil.nombre,
+                nombre: perfil.nombre,
+                phone: perfil.telefono,
+                email: perfil.email,
+                isSocia: true,
+                nivel: perfil.nivel as any,
+                codigoReferido: perfil.codigo_referido,
+                referidosActivos: 0,        // se calcula en CRM
+                gananciasAcumuladas: perfil.ganancias_total ?? 0,
+              };
+              setDistributor(mapped);
+              // Redirigir al dashboard solo si estamos en la vista de catálogo
+              // (no interrumpir si ya está navegando)
+              setCurrentView(prev => prev === 'catalog' ? 'socias' : prev);
+            } else {
+              // Sesión válida pero sin perfil de distribuidora aún
+              setDistributor(null);
+              // No redirigir — el header mostrará el email del usuario
+              // y la vendedora puede explorar el catálogo de todas formas.
+            }
+          } catch (err) {
+            console.warn('[auth] Error cargando perfil distribuidora:', err);
+            setDistributor(null);
+          }
+
+          // ── Admin check ──────────────────────────────────────────────────
+          if (
+            authUser.email === 'wibbydashboard@gmail.com' ||
+            authUser.user_metadata?.role === 'admin'
+          ) {
+            setIsAdmin(true);
+          }
+        } else {
+          // Sesión cerrada: limpiar estado
+          setDistributor(null);
+          setIsAdmin(false);
+          setCurrentView('catalog');
         }
-      } catch (err) {
-        console.error("Auth Check Error", err);
       }
-    };
-    checkRole();
-  }, [currentView, distributor]);
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+  // ── Fin P0-3/P0-4 ─────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (distributor) {
@@ -398,25 +511,32 @@ export default function App() {
   useEffect(() => {
     // Cargar productos de Supabase
     async function loadProducts() {
+      setIsProductsLoading(true);
       try {
         const data = await obtenerProductos();
-        if (data && data.length > 0) setProducts(data);
+        if (data && data.length > 0) {
+          setProducts(data);
+        } else {
+          // Si DB está vacía, usamos fallback.
+          // SI SE QUIERE PROBAR MANTENIMIENTO: comentar la siguiente línea
+          setProducts(FALLBACK_PRODUCTS);
+        }
       } catch (err) {
-        console.warn("Supabase no disponible. Usando catálogo de respaldo.");
+        console.warn('Supabase no disponible. Usando catálogo de respaldo.');
+        setProducts(FALLBACK_PRODUCTS);
+      } finally {
+        setIsProductsLoading(false);
       }
     }
     loadProducts();
 
-    // Detección de Referido
+    // Detección de Referido por URL
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
     if (ref) {
       setReferralCode(ref);
       setCurrentView('join');
     }
-
-    // Auth Observer
-    obtenerUsuarioActual().then(u => setUser(u)).catch(() => { });
 
     // Scroll Observer
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -511,7 +631,7 @@ export default function App() {
       }
     }
 
-    const message = `¡Hola ${prospectoTemp.nombre}! 👋 Soy ${distributor?.nombre || 'tu distribuidora'} de Koppara México. Es un gusto saludarte.\n\nAquí tienes el desglose de lo que platicamos:\n\n${cart.map(i => `✅ ${i.name} (${i.quantity}) - ${formatCurrency(i.price)}`).join('\n')}\n\n*Total a pagar: ${formatCurrency(cartTotal)}*\n\n📂 *Descarga nuestro catálogo completo aquí:* ${MASTER_CATALOG_URL}\n\n¿Quieres que agendemos tu entrega hoy mismo? ✨`;
+    const message = `\u00A1Hola ${prospectoTemp.nombre}! Soy ${distributor?.nombre || 'tu distribuidora'} de Koppara México. Es un gusto saludarte.\n\nAquí tienes el desglose de lo que platicamos:\n\n${cart.map(i => `- ${i.name} (${i.quantity}) - ${formatCurrency(i.price)}`).join('\n')}\n\n*Total a pagar: ${formatCurrency(cartTotal)}*\n\n*Descarga nuestro catálogo completo aquí:* ${MASTER_CATALOG_URL}\n\n¿Quieres que agendemos tu entrega hoy mismo?`;
     window.open(getWhatsAppLink(prospectoTemp.telefono, message), '_blank');
     setShowProspectoPopup(false);
     setCart([]);
@@ -767,7 +887,7 @@ export default function App() {
           <div className="animate-fadeIn">
             <section className="pt-8 pb-6 text-center max-w-4xl mx-auto px-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-koppara-green/10 text-koppara-green rounded-full text-[9px] font-bold uppercase tracking-[0.3em] mb-3">
-                <Sparkles size={10} /> Colección Luxury 2024
+                <Sparkles size={10} /> Colección Luxury 2026
               </div>
               <h1 className="text-2xl md:text-3xl font-bold text-koppara-gray mb-4 leading-tight">Tu belleza,<br />desde la raíz.</h1>
               <div className="flex flex-wrap justify-center gap-2 mb-5">
@@ -780,7 +900,7 @@ export default function App() {
               <div className="inline-flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 shadow-sm">
                 <div className="flex flex-col text-left">
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Catálogo Completo PDF</span>
-                  <span className="text-xs font-bold text-slate-700">Toda la colección Koppara 2024</span>
+                  <span className="text-xs font-bold text-slate-700">Toda la colección Koppara 2026</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <a
@@ -795,7 +915,7 @@ export default function App() {
                   <button
                     onClick={() => {
                       const nombreVendedora = distributor?.nombre || distributor?.name || 'tu distribuidora Koppara';
-                      const msg = `¡Hola! 👋 Soy *${nombreVendedora}*, distribuidora oficial de *Koppara Cosmética Orgánica* 🌿\n\nTe comparto nuestro catálogo completo con toda la colección 2024:\n\n📖 *Ver catálogo aquí:* ${MASTER_CATALOG_URL}\n\n✨ Encuentra cremas, rituales, productos faciales y corporales de alta calidad.\n\n¿Te gustaría conocer más o hacer un pedido? ¡Con gusto te atiendo! 💚`;
+                      const msg = `\u00A1Hola! Soy *${nombreVendedora}*, distribuidora oficial de *Koppara Cosmética Orgánica*.\n\nTe comparto nuestro catálogo completo con toda la colección 2026:\n\n*Ver catálogo aquí:* ${MASTER_CATALOG_URL}\n\nEncuentra cremas, rituales, productos faciales y corporales de alta calidad.\n\n¿Te gustaría conocer más o hacer un pedido? ¡Con gusto te atiendo!`;
                       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                     }}
                     className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-xl font-bold text-[10px] flex items-center gap-1.5 transition-all shadow-sm"
@@ -808,7 +928,13 @@ export default function App() {
             </section>
 
             <section className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-              {filteredProducts.length > 0 ? (
+              {/* P0-FIX: Loading State & Maintenance Mode */}
+              {isProductsLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 animate-fadeIn">
+                  <Loader2 className="w-12 h-12 text-koppara-green animate-spin mb-4" />
+                  <p className="text-slate-400 text-sm font-medium">Cargando colección...</p>
+                </div>
+              ) : filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredProducts.map(p => (
                     <div key={p.id} className="luxury-card group bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col cursor-pointer transition-all hover:border-koppara-green/20" onClick={() => setSelectedProduct(p)}>
@@ -825,7 +951,7 @@ export default function App() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const msg = `¡Hola! 👋 Mira este producto increíble de Koppara Cosmética Orgánica:\n\n✨ *${p.name}*\n${p.description}\n\n💰 Precio: *${formatCurrency(p.price)}*\n\n🛒 Ve el catálogo completo aquí: ${window.location.origin}`;
+                                const msg = `\u00A1Hola! \u2728 Mira este producto incre\u00EDble de Koppara Cosm\u00E9tica Org\u00E1nica: \uD83C\uDF3F ${p.name}\n${p.description}\n\n\uD83E\uDDB7 Precio: ${formatCurrency(p.price)}\n\n\uD83C\uDFF7 Ve el cat\u00E1logo completo aqu\u00ED: ${window.location.origin}`;
                                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                               }}
                               className="w-8 h-8 bg-green-50 hover:bg-green-500 text-green-500 hover:text-white rounded-lg transition-all flex items-center justify-center border border-green-100"
@@ -842,7 +968,26 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+              ) : products.length === 0 ? (
+                /* MANTENIMIENTO: Solo si la base de datos no devolvió NADA (ni fallback) */
+                <div className="flex flex-col items-center justify-center py-24 px-6 text-center animate-fadeIn">
+                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                    <Sparkles className="w-10 h-10 text-slate-300" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-koppara-gray mb-3">Catálogo en mantenimiento</h3>
+                  <p className="text-slate-400 max-w-sm mx-auto text-sm leading-relaxed mb-8">
+                    Estamos actualizando nuestra colección para ofrecerte lo mejor. Vuelve pronto para descubrir las novedades.
+                  </p>
+                  <button
+                    onClick={() => setCurrentView('join')}
+                    style={{ backgroundColor: '#D4AF37' }}
+                    className="px-8 py-4 rounded-xl text-white font-bold shadow-xl shadow-[#D4AF37]/20 hover:brightness-110 transition-all transform hover:-translate-y-1 active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2"
+                  >
+                    <Sparkles size={16} /> ¡Únete como Socia Elite y empieza a ganar!
+                  </button>
+                </div>
               ) : (
+                /* Búsqueda sin resultados */
                 <EmptyState />
               )}
             </section>
@@ -878,8 +1023,8 @@ export default function App() {
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => plan.price === 0 ? setCurrentView('catalog') : setSelectedCheckoutPlan(plan)} className={`w-full py-4 rounded-xl font-bold transition uppercase tracking-widest text-[10px] ${plan.popular ? 'bg-koppara-green text-white' : 'bg-koppara-lightGray text-koppara-gray'}`}>
-                    {plan.name === 'Básica' ? 'Registrarme' : 'Unirme Ahora'}
+                  <button onClick={() => setSelectedCheckoutPlan(plan)} className={`w-full py-4 rounded-xl font-bold transition uppercase tracking-widest text-[10px] ${plan.popular ? 'bg-koppara-green text-white' : 'bg-koppara-lightGray text-koppara-gray'}`}>
+                    {plan.name === 'Básica' ? 'Solicitar Registro' : 'Unirme Ahora'}
                   </button>
                 </div>
               ))}
@@ -983,7 +1128,7 @@ export default function App() {
                       <button
                         onClick={() => {
                           const nombre = distributor.nombre || distributor.name || 'tu distribuidora Koppara';
-                          const msg = `¡Hola! 👋 Soy *${nombre}*, distribuidora oficial de *Koppara Cosmética Orgánica* 🌿\n\nTe comparto nuestro catálogo completo de productos natúrales y orgánicos de alta calidad:\n\n📖 *Ver catálogo aquí:* ${MASTER_CATALOG_URL}\n\n✨ Cremas, rituales faciales, corporales y capilares.\n\n¿Te gustaría hacer un pedido o conocer más? ¡Con gusto te asesoro! 💚`;
+                          const msg = `\u00A1Hola! Soy *${nombre}*, distribuidora oficial de *Koppara Cosmética Orgánica*.\n\nTe comparto nuestro catálogo completo de productos natúrales y orgánicos de alta calidad:\n\n*Ver catálogo aquí:* ${MASTER_CATALOG_URL}\n\nCremas, rituales faciales, corporales y capilares.\n\n¿Te gustaría hacer un pedido o conocer más? ¡Con gusto te asesoro!`;
                           window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                         }}
                         className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
@@ -1220,7 +1365,7 @@ export default function App() {
 
       <footer className="py-12 bg-koppara-lightGray text-center mt-12">
         <KopparaLogo className="h-8 mx-auto mb-4 opacity-30 grayscale" />
-        <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2025 Koppara México • Cosmética Orgánica</p>
+        <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2026 Koppara México • Cosmética Orgánica</p>
       </footer>
       {/* Notification List Modal if Bell Clicked */}
       {
@@ -1325,7 +1470,7 @@ const ProductModal: React.FC<{ product: Product; onClose: () => void; onAddToCar
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => {
-                const msg = `¡Hola! 👋 Mira este producto increíble de Koppara Cosmética Orgánica:\n\n✨ *${product.name}*\n${product.description}\n\n💰 Precio: *${formatCurrency(product.price)}*\n\n🛒 Ve el catálogo completo aquí: ${window.location.origin}`;
+                const msg = `\u00A1Hola! \u2728 Mira este producto incre\u00EDble de Koppara Cosm\u00E9tica Org\u00E1nica: \uD83C\uDF3F ${product.name}\n${product.description}\n\n\uD83E\uDDB7 Precio: ${formatCurrency(product.price)}\n\n\uD83C\uDFF7 Ve el cat\u00E1logo completo aqu\u00ED: ${window.location.origin}`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
               }}
               className="bg-green-500 text-white font-bold px-4 py-3 rounded-xl shadow-md hover:bg-green-600 flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:scale-95 text-xs"

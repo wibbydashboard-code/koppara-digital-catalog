@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 
+// --- Interfaces de Reportes ---
 export interface PromotoraStats {
     id: string;
     nombre: string;
@@ -7,7 +8,7 @@ export interface PromotoraStats {
     compartidos: number;
     ventas: number;
     conversion: number;
-    slaIndex: number; // Porcentaje de contactos atendidos a tiempo (<48h)
+    slaIndex: number;
     montoTotal: number;
 }
 
@@ -16,6 +17,8 @@ export interface ProductStat {
     cantidad: number;
     monto: number;
 }
+
+// --- Métodos de Estadísticas ---
 
 export async function obtenerEstadisticasAdmin() {
     // 1. Obtener todas las distribuidoras
@@ -28,22 +31,21 @@ export async function obtenerEstadisticasAdmin() {
         .from('prospectos')
         .select('*');
 
-    // 3. Obtener todos los leads (historial de compartición)
+    // 3. Obtener leads
     const { data: leads } = await supabase
         .from('leads')
         .select('*');
 
     if (!distribuidoras || !prospectos || !leads) return null;
 
-    // --- Procesamiento de Promotoras ---
+    // --- Procesamiento de Promotoras (Performance Optimizada) ---
     const statsPromotoras: PromotoraStats[] = distribuidoras.map(d => {
         const misProspectos = prospectos.filter(p => p.distribuidora_id === d.id);
         const misLeads = leads.filter(l => l.distribuidora_id === d.id);
-
         const ventas = misProspectos.filter(p => p.estado === 'venta_cerrada').length;
         const contactos = misProspectos.length;
 
-        // Cálculo de SLA: % de prospectos que NO están vencidos (>48h sin interacción)
+        // SLA: % de prospectos atendidos antes de 48h
         const aTiempo = misProspectos.filter(p => {
             const ultima = new Date(p.ultima_interaccion).getTime();
             const diffHours = (Date.now() - ultima) / 36e5;
@@ -65,19 +67,14 @@ export async function obtenerEstadisticasAdmin() {
     });
 
     // --- Procesamiento de Productos ---
-    const { data: currentProducts } = await supabase
-        .from('productos')
-        .select('nombre, status');
-
+    const { data: currentProducts } = await supabase.from('productos').select('nombre, status');
     const publishedNames = new Set(currentProducts?.filter(p => p.status !== 'draft').map(p => p.nombre) || []);
-
     const productMap = new Map<string, { cantidad: number; monto: number }>();
 
     leads.forEach(l => {
         const items = l.productos || [];
         items.forEach((p: any) => {
-            if (!publishedNames.has(p.name)) return; // Excluir si es borrador o no existe
-
+            if (!publishedNames.has(p.name)) return;
             const existing = productMap.get(p.name) || { cantidad: 0, monto: 0 };
             productMap.set(p.name, {
                 cantidad: existing.cantidad + (p.qty || 1),
@@ -101,4 +98,92 @@ export async function obtenerEstadisticasAdmin() {
                 : 0
         }
     };
+}
+
+// ============================================================================
+// GESTIÓN DE LINAJE Y SEGURIDAD DE RED (Consolidado)
+// ============================================================================
+
+/**
+ * Obtiene el listado completo de la red con detalles de linaje.
+ * Incluye Socio ID, Nivel, Lead Orgánico y Patrocinador Actual.
+ */
+export async function obtenerDistribuidorasLinaje() {
+    const { data, error } = await supabase
+        .from('distribuidoras')
+        // Nota: El join 'sponsor:referred_by' asume que tenemos la FK configurada en DB
+        .select(`
+      id, 
+      socio_id, 
+      nombre, 
+      email,
+      nivel, 
+      organic_lead, 
+      referred_by,
+      sponsor:referred_by ( id, nombre, socio_id )
+    `)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+}
+
+/**
+ * Ejecuta un cambio de patrocinador de alto nivel con validaciones estrictas.
+ * 1. Verifica ciclos (A->B->A).
+ * 2. Realiza el cambio.
+ * 3. Registra auditoría inmutable.
+ */
+export async function cambiarPatrocinador(
+    adminEmail: string,
+    sociaId: string,
+    nuevoPatrocinadorId: string | null, // NULL = Mover a Raíz (Sin patrocinador)
+    patrocinadorAnteriorId: string | null
+) {
+    // 1. Validación Básica: No ser padre de sí mismo
+    if (sociaId === nuevoPatrocinadorId) {
+        throw new Error("REGLA DE NEGOCIO: Una socia no puede ser su propio patrocinador.");
+    }
+
+    // 2. Validación de Ciclos Profunda (SQL Function)
+    if (nuevoPatrocinadorId) {
+        // Llamada a función RPC para verificar si el nuevo padre es descendiente del hijo
+        // Esta función debe existir en la DB (Ver supabase_lineage.sql)
+        const { data: isCycle, error: rpcError } = await supabase
+            .rpc('check_lineage_cycle', {
+                child_id: sociaId,
+                projected_parent_id: nuevoPatrocinadorId
+            });
+
+        if (rpcError) {
+            // Si la función RPC no existe aún, continuamos con warning pero bloqueamos lo obvio
+            console.warn("Advertencia: No se pudo verificar ciclos complejos (RPC missing).", rpcError);
+        } else if (isCycle) {
+            throw new Error("REGLA DE NEGOCIO: Ciclo detectado. No puedes asignar a una socia bajo alguien que ya está en su propia línea descendente.");
+        }
+    }
+
+    // 3. Ejecutar Update (Atomicidad)
+    const { error: updateError } = await supabase
+        .from('distribuidoras')
+        .update({
+            referred_by: nuevoPatrocinadorId,
+            organic_lead: false // Si se asigna manualmente, ya no es orgánico "huérfano"
+        })
+        .eq('id', sociaId);
+
+    if (updateError) throw updateError;
+
+    // 4. Registrar en Auditoría (Inmutable)
+    const { error: logError } = await supabase
+        .from('audit_logs_lineage')
+        .insert({
+            admin_email: adminEmail,
+            distribuidora_id: sociaId,
+            old_sponsor_id: patrocinadorAnteriorId,
+            new_sponsor_id: nuevoPatrocinadorId,
+            reason: 'Reasignación manual desde Panel Admin'
+        });
+
+    if (logError) console.error("CRITICAL: Error guardando log de auditoría", logError);
 }

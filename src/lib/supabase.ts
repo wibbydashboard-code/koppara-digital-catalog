@@ -2,11 +2,24 @@ import { createClient } from '@supabase/supabase-js'
 
 /**
  * Configuración del cliente de Supabase para Koppara Digital Catalog.
- * Credenciales hardcodeadas para asegurar el funcionamiento en cualquier entorno.
+ *
+ * Variables de entorno Vite (definir en .env.local):
+ *   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+ *   VITE_SUPABASE_ANON_KEY=eyJ...
+ *
+ * Si las vars no están definidas (entorno importmap / legacy),
+ * se usan los valores de fallback de producción.
+ * Para rotar las credenciales basta con actualizar .env.local en Vercel.
  */
 
-const supabaseUrl = 'https://rgrdogwwczlxakeggnbu.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJncmRvZ3d3Y3pseGFrZWdnbmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MzQwMTgsImV4cCI6MjA4NzExMDAxOH0.K0MrGpM6QiZ8eEIXXNyVwXEyKwIaGyb_n3heb5mbfDI'
+// P0-SECURITY: Leer desde Vite env vars. Fallback para entorno importmap.
+const supabaseUrl =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
+  'https://rgrdogwwczlxakeggnbu.supabase.co'
+
+const supabaseAnonKey =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJncmRvZ3d3Y3pseGFrZWdnbmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MzQwMTgsImV4cCI6MjA4NzExMDAxOH0.K0MrGpM6QiZ8eEIXXNyVwXEyKwIaGyb_n3heb5mbfDI'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -44,6 +57,9 @@ export interface Distribuidora {
   ganancias_total: number;
   fecha_registro: string;
   created_at: string;
+  socio_id?: string;
+  organic_lead?: boolean;
+  referred_by?: string;
 }
 
 export interface Lead {

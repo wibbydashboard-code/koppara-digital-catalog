@@ -17,14 +17,18 @@ export interface Product {
 }
 
 export interface Distributor {
+  id?: string;          // UUID de auth (presente cuando viene de Supabase)
   name: string;
+  nombre?: string;      // Alias en español (para compatibilidad con lógica existente)
   phone: string;
   email?: string;
   isSocia?: boolean;
-  nivel?: 'Básica' | 'Luxury' | 'Elite';
+  nivel?: 'Básica' | 'Luxury' | 'Elite' | 'basica' | 'luxury' | 'elite';
   codigoReferido?: string;
   referidosActivos?: number;
   gananciasAcumuladas?: number;
+  socioId?: string;
+  organicLead?: boolean;
 }
 
 export interface CartItem extends Product {
