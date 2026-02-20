@@ -18,7 +18,7 @@ import { Distribuidora, Lead } from './lib/supabase';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { AdminPanel } from './components/AdminPanel';
-import logoKoppara from '../public/icon-512.png';
+import logoKoppara from './assets/logo_koppara.png';
 import { obtenerNotificaciones } from './services/notifications.service';
 import { Notificacion, Prospecto } from './lib/supabase';
 import {
@@ -35,13 +35,16 @@ import {
 const KopparaLogo = ({ className = "h-20", compact = false }: { className?: string; compact?: boolean }) => {
   const [imgError, setImgError] = useState(false);
 
+  // Logo centralizado para evitar errores de ruta
+  const logoSrc = "/icon-512.png";
+
   if (compact) {
     return (
-      <div className={`${className} overflow-hidden w-12 h-12`}>
+      <div className={`${className} overflow-hidden w-12 h-12 flex items-center justify-center bg-white rounded-lg`}>
         <img
-          src="/icon-512.png"
+          src={logoSrc}
           alt="Koppara"
-          className="h-full w-auto object-cover object-left"
+          className="h-full w-auto object-contain"
           onError={() => setImgError(true)}
         />
       </div>
@@ -52,7 +55,7 @@ const KopparaLogo = ({ className = "h-20", compact = false }: { className?: stri
     <div className={`flex items-center justify-center ${className}`}>
       {!imgError ? (
         <img
-          src="/icon-512.png"
+          src={logoSrc}
           alt="Koppara"
           className="h-full w-auto object-contain"
           style={{ height: '100%', width: 'auto' }}
@@ -346,12 +349,19 @@ export default function App() {
 
   useEffect(() => {
     const checkRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.user_metadata?.role === 'admin') {
-        setIsAdmin(true);
-      } else if (currentView === 'admin') {
-        // Redirección inmediata si intenta acceder a admin sin rol
-        setCurrentView(distributor ? 'socias' : 'catalog');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Hardcoded admin for initial setup of owner
+        if (user?.email === 'wibbydashboard@gmail.com') {
+          setIsAdmin(true);
+        } else if (user?.user_metadata?.role === 'admin') {
+          setIsAdmin(true);
+        } else if (currentView === 'admin') {
+          setCurrentView(distributor ? 'socias' : 'catalog');
+        }
+      } catch (err) {
+        console.error("Auth Check Error", err);
       }
     };
     checkRole();
@@ -514,7 +524,8 @@ export default function App() {
       const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
       const matchesSearch = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
       const isPublished = p.status !== 'draft';
-      return matchesCategory && matchesSearch && isPublished;
+      // Admins can see drafts in the main catalog for preview
+      return matchesCategory && matchesSearch && (isPublished || isAdmin);
     });
   }, [activeCategory, searchQuery, products]);
 
