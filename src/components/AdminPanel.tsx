@@ -167,28 +167,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
   };
 
   return (
-    <div className="fixed inset-0 z-[230] bg-slate-900/95 backdrop-blur-xl flex flex-col md:p-6 animate-fadeIn">
-      <div className="flex-1 bg-white md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[230] bg-slate-900/95 backdrop-blur-xl flex flex-col md:p-4 animate-fadeIn font-sans">
+      <div className="flex-1 bg-white md:rounded-[1.5rem] shadow-2xl flex flex-col overflow-hidden max-w-[1600px] mx-auto w-full">
 
         {/* Header Admin */}
-        <header className="px-10 py-6 border-b flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-koppara-green rounded-2xl flex items-center justify-center text-white shadow-lg shadow-koppara-green/20">
-              <ShieldCheck size={28} />
+        <header className="px-6 py-3 border-b flex items-center justify-between bg-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-koppara-green rounded-xl flex items-center justify-center text-white shadow-md shadow-koppara-green/20">
+              <ShieldCheck size={22} />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Panel Maestro Koppara</h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Control Central de Operaciones</p>
+              <h2 className="text-lg font-black text-slate-800 tracking-tight">Panel Maestro Koppara</h2>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Control Central de Operaciones</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-red-500 transition-all shadow-sm">
-            <X size={24} />
+          <button onClick={onClose} className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-red-500 transition-all shadow-sm">
+            <X size={20} />
           </button>
         </header>
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar Nav */}
-          <aside className="w-24 md:w-64 border-r bg-slate-50/50 flex flex-col p-4 gap-2">
+          <aside className="w-20 md:w-52 border-r bg-slate-50/50 flex flex-col p-3 gap-1.5">
             {[
               { id: 'products', icon: Package, label: 'Productos' },
               { id: 'stats', icon: BarChart3, label: 'Estadísticas' },
@@ -198,135 +198,134 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-4 p-4 rounded-2xl font-bold text-sm transition-all ${activeTab === tab.id
-                  ? 'bg-koppara-green text-white shadow-lg shadow-koppara-green/20'
-                  : 'text-slate-400 hover:bg-white hover:text-slate-600'
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all font-bold text-xs uppercase tracking-wider ${activeTab === tab.id
+                  ? 'bg-koppara-green text-white shadow-md shadow-koppara-green/20'
+                  : 'text-slate-400 hover:bg-white hover:text-koppara-green'
                   }`}
               >
-                <tab.icon size={20} />
+                <tab.icon size={16} />
                 <span className="hidden md:inline">{tab.label}</span>
               </button>
             ))}
 
-            <div className="mt-auto p-4 bg-slate-100 rounded-2xl hidden md:block">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Estado DB</span>
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="mt-auto bg-white p-3 rounded-xl border border-slate-100 hidden md:block">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Estado DB</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               </div>
-              <p className="text-xs font-medium text-slate-600">Conexión Segura</p>
+              <p className="text-[10px] font-medium text-slate-600">Conexión Segura</p>
             </div>
           </aside>
 
           {/* Content Area */}
-          <main className="flex-1 overflow-y-auto p-10">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full">
             {message && (
-              <div className={`mb-8 p-4 rounded-2xl flex items-center justify-between animate-slideDown ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+              <div className={`mb-6 p-3 rounded-xl flex items-center justify-between animate-slideDown ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
-                <span className="font-bold text-sm">{message.text}</span>
-                <button onClick={() => setMessage(null)}><X size={16} /></button>
+                <span className="font-bold text-xs">{message.text}</span>
+                <button onClick={() => setMessage(null)}><X size={14} /></button>
               </div>
             )}
 
             {activeTab === 'products' && (
               <div className="space-y-8">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-3xl font-bold text-slate-800">Catálogo de Productos</h3>
+                  <h3 className="text-xl font-bold text-slate-800 tracking-tight">Catálogo de Productos</h3>
                   <button
                     onClick={() => setItems([{ id: crypto.randomUUID(), nombre: 'Nuevo Producto', referencia: 'KOP-', categoria: 'Relax', descripcion: '', precio: 0, activo: true, status: 'draft', imagen_url: '', beneficios: [], modo_uso: '', ingredientes: [], certificaciones: [], rituales: [], created_at: new Date().toISOString() }, ...items])}
-                    className="flex items-center gap-2 bg-koppara-green text-white px-6 py-3 rounded-full font-bold shadow-xl shadow-koppara-green/20 hover:scale-105 transition-transform"
+                    className="flex items-center gap-2 bg-koppara-green text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-koppara-green/20 hover:scale-105 transition-transform text-xs"
                   >
-                    <Plus size={20} /> Nuevo Producto
+                    <Plus size={18} /> Nuevo Producto
                   </button>
                 </div>
 
-                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
-                        <th className="px-6 py-4">Producto</th>
-                        <th className="px-6 py-4">Categoría / SKU</th>
-                        <th className="px-6 py-4">Precio Público</th>
-                        <th className="px-6 py-4">Márgenes Socia</th>
-                        <th className="px-6 py-4">Estado</th>
-                        <th className="px-6 py-4">Acciones</th>
+                      <tr className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b">
+                        <th className="px-4 py-3">Producto</th>
+                        <th className="px-4 py-3">Categoría / SKU</th>
+                        <th className="px-4 py-3">Precio Público</th>
+                        <th className="px-4 py-3">Márgenes Socia</th>
+                        <th className="px-4 py-3">Estado</th>
+                        <th className="px-4 py-3">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {items.map(product => (
                         <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-6">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 group relative">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 group relative">
                                 <img src={product.image || product.imagen_url} className="w-full h-full object-cover" />
                                 <button className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                  <Upload size={14} />
+                                  <Upload size={12} />
                                 </button>
                               </div>
                               <div className="flex flex-col">
                                 <input
-                                  className="font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 text-sm w-40"
+                                  className="font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 text-xs w-36"
                                   value={product.nombre}
                                   onChange={e => handleProductChange(product.id, 'nombre', e.target.value)}
                                 />
-                                <span className="text-[10px] text-slate-400 font-mono">{product.id.slice(0, 8)}</span>
+                                <span className="text-[9px] text-slate-400 font-mono tracking-tighter">{product.id.slice(0, 8)}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-6">
+                          <td className="px-4 py-3">
                             <select
-                              className="text-xs font-bold text-slate-500 bg-slate-100 border-none rounded-lg px-2 py-1 mb-1 block"
+                              className="text-[10px] font-bold text-slate-500 bg-slate-100 border-none rounded px-1.5 py-0.5 mb-1 block"
                               value={product.categoria}
                               onChange={e => handleProductChange(product.id, 'categoria', e.target.value)}
                             >
                               {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                             <input
-                              className="text-xs text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-24"
+                              className="text-[10px] text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-20 font-mono"
                               value={product.referencia}
                               onChange={e => handleProductChange(product.id, 'referencia', e.target.value)}
                             />
                           </td>
-                          <td className="px-6 py-6 font-mono font-bold text-slate-700">
-                            <div className="flex items-center gap-1">
-                              <span>$</span>
+                          <td className="px-4 py-3 font-mono font-bold text-slate-700">
+                            <div className="flex items-center gap-0.5">
+                              <span className="text-xs">$</span>
                               <input
                                 type="number"
-                                className="w-20 bg-transparent border-none p-0 focus:ring-0 text-sm font-bold"
+                                className="w-16 bg-transparent border-none p-0 focus:ring-0 text-xs font-bold"
                                 value={product.precio}
                                 onChange={e => handleProductChange(product.id, 'precio', Number(e.target.value))}
                               />
                             </div>
                           </td>
-                          <td className="px-6 py-6">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[9px] text-slate-400">Básica (15%): <b className="text-slate-600">${calculateDiscount(product.precio, 15).toFixed(0)}</b></span>
-                              <span className="text-[9px] text-slate-400 font-bold border-l-2 border-koppara-green pl-2">Luxury (25%): <b className="text-koppara-forest">${calculateDiscount(product.precio, 25).toFixed(0)}</b></span>
-                              <span className="text-[9px] text-slate-400">Elite (35%): <b className="text-slate-600">${calculateDiscount(product.precio, 35).toFixed(0)}</b></span>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col">
+                              <span className="text-[8px] text-slate-400 uppercase">Bas: <b>${calculateDiscount(product.precio, 15).toFixed(0)}</b></span>
+                              <span className="text-[8px] text-koppara-forest font-bold border-l-2 border-koppara-green pl-1 my-0.5">Lux: <b>${calculateDiscount(product.precio, 25).toFixed(0)}</b></span>
+                              <span className="text-[8px] text-slate-400 uppercase">Eli: <b>${calculateDiscount(product.precio, 35).toFixed(0)}</b></span>
                             </div>
                           </td>
-                          <td className="px-6 py-6">
+                          <td className="px-4 py-3">
                             <button
                               onClick={() => handleProductChange(product.id, 'status', product.status === 'published' ? 'draft' : 'published')}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${product.status === 'published'
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all ${product.status === 'published'
                                 ? 'bg-green-100 text-green-700 border border-green-200'
                                 : 'bg-slate-100 text-slate-400 border border-slate-200'
                                 }`}
                             >
-                              {product.status === 'published' ? <Eye size={12} /> : <EyeOff size={12} />}
                               {product.status === 'published' ? 'Publicado' : 'Borrador'}
                             </button>
                           </td>
-                          <td className="px-6 py-6">
-                            <div className="flex items-center gap-2">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => setEditingProduct(product)}
-                                className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+                                className="p-1.5 bg-slate-100 text-slate-600 rounded flex items-center justify-center hover:bg-slate-200 transition-colors"
                                 title="Editar detalles completos"
                               >
-                                <Edit size={16} />
+                                <Edit size={14} />
                               </button>
-                              <button onClick={() => saveProduct(product)} className="p-2 bg-slate-900 text-white rounded-lg hover:bg-black transition-colors shadow-lg shadow-black/10"><Save size={16} /></button>
-                              <button onClick={() => deleteProduct(product.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                              <button onClick={() => saveProduct(product)} className="p-1.5 bg-slate-900 text-white rounded flex items-center justify-center hover:bg-black transition-colors shadow-sm"><Save size={14} /></button>
+                              <button onClick={() => deleteProduct(product.id)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors flex items-center justify-center"><Trash2 size={14} /></button>
                             </div>
                           </td>
                         </tr>

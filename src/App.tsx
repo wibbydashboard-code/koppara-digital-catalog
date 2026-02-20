@@ -706,15 +706,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white font-sans text-koppara-gray">
       {/* Official Header */}
-      <header className={`no-print sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'py-2' : 'py-6 px-4 md:px-12'}`}>
-        <div className={`max-w-7xl mx-auto flex items-center justify-between rounded-full floating-nav transition-all duration-300 ${scrolled ? 'px-6 py-2 border-b' : 'px-8 py-4 border border-slate-100 shadow-lg'}`}>
-          <nav className="hidden lg:flex items-center gap-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex-1">
+      <header className={`no-print sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'py-1' : 'py-3 px-4 md:px-8'}`}>
+        <div className={`max-w-7xl mx-auto flex items-center justify-between rounded-full floating-nav transition-all duration-300 ${scrolled ? 'px-4 py-1.5 border-b' : 'px-6 py-2.5 border border-slate-100 shadow-lg'}`}>
+          <nav className="hidden lg:flex items-center gap-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest flex-1">
             <button onClick={() => setCurrentView('catalog')} className={`hover:text-koppara-green transition ${currentView === 'catalog' ? 'text-koppara-green' : ''}`}>Catálogo</button>
             <button onClick={() => setCurrentView(distributor?.isSocia ? 'socias' : 'join')} className={`hover:text-koppara-green transition ${currentView === 'socias' || currentView === 'join' ? 'text-koppara-green' : ''}`}>Membresía</button>
           </nav>
 
           <div className="flex-[2] flex items-center justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <KopparaLogo className="h-[80px] group-hover:scale-105 transition-transform" />
+            <KopparaLogo className="h-[60px] group-hover:scale-105 transition-transform" />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
@@ -771,34 +771,34 @@ export default function App() {
       <main>
         {currentView === 'catalog' && (
           <div className="animate-fadeIn">
-            <section className="pt-20 pb-12 text-center max-w-4xl mx-auto px-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-koppara-green/10 text-koppara-green rounded-full text-[10px] font-bold uppercase tracking-[0.3em] mb-6">
-                <Sparkles size={12} /> Colección Luxury 2024
+            <section className="pt-12 pb-8 text-center max-w-4xl mx-auto px-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-koppara-green/10 text-koppara-green rounded-full text-[9px] font-bold uppercase tracking-[0.3em] mb-4">
+                <Sparkles size={10} /> Colección Luxury 2024
               </div>
-              <h1 className="text-5xl md:text-7xl font-bold text-koppara-gray mb-8 leading-tight">Tu belleza,<br />desde la raíz.</h1>
+              <h1 className="text-4xl md:text-5xl font-bold text-koppara-gray mb-6 leading-tight">Tu belleza,<br />desde la raíz.</h1>
               <div className="flex flex-wrap justify-center gap-2">
                 {CATEGORIES.map(cat => (
-                  <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest border transition-all ${activeCategory === cat ? 'bg-koppara-green text-white border-koppara-green shadow-xl' : 'bg-white text-slate-400 border-slate-100 hover:border-koppara-green'}`}>{cat}</button>
+                  <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${activeCategory === cat ? 'bg-koppara-green text-white border-koppara-green shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-koppara-green'}`}>{cat}</button>
                 ))}
               </div>
             </section>
 
-            <section className="max-w-7xl mx-auto px-4 md:px-12 py-12">
+            <section className="max-w-7xl mx-auto px-4 md:px-8 py-8">
               {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredProducts.map(p => (
-                    <div key={p.id} className="luxury-card group bg-white rounded-lg border border-slate-100 shadow-sm p-8 flex flex-col cursor-pointer transition-all hover:border-koppara-green/20" onClick={() => setSelectedProduct(p)}>
-                      <div className="h-64 rounded-lg shadow-sm border border-slate-50 mb-6">
+                    <div key={p.id} className="luxury-card group bg-white rounded-xl border border-slate-100 shadow-sm p-5 flex flex-col cursor-pointer transition-all hover:border-koppara-green/20" onClick={() => setSelectedProduct(p)}>
+                      <div className="h-48 rounded-lg shadow-sm border border-slate-50 mb-4 overflow-hidden relative">
                         <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-koppara-green shadow-sm">{p.category}</div>
+                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest text-koppara-green shadow-sm">{p.category}</div>
                       </div>
-                      <div className="px-2 flex-1 flex flex-col">
-                        <h3 className="text-xl font-bold text-koppara-gray mb-2">{p.name}</h3>
-                        <p className="text-xs text-slate-400 line-clamp-2 mb-6 leading-relaxed">"{p.description}"</p>
+                      <div className="px-1 flex-1 flex flex-col">
+                        <h3 className="text-lg font-bold text-koppara-gray mb-1.5">{p.name}</h3>
+                        <p className="text-[11px] text-slate-400 line-clamp-2 mb-4 leading-relaxed">"{p.description}"</p>
                         <div className="mt-auto flex items-center justify-between">
-                          <p className="text-2xl font-bold text-koppara-gray tracking-tight">{formatCurrency(p.price)}</p>
-                          <button onClick={(e) => { e.stopPropagation(); handleAddToCart(p); }} className="w-12 h-12 bg-koppara-green/5 hover:bg-koppara-green text-koppara-green hover:text-white rounded-2xl transition-all flex items-center justify-center border border-koppara-green/10">
-                            <Plus size={24} />
+                          <p className="text-xl font-bold text-koppara-gray tracking-tight">{formatCurrency(p.price)}</p>
+                          <button onClick={(e) => { e.stopPropagation(); handleAddToCart(p); }} className="w-10 h-10 bg-koppara-green/5 hover:bg-koppara-green text-koppara-green hover:text-white rounded-xl transition-all flex items-center justify-center border border-koppara-green/10">
+                            <Plus size={20} />
                           </button>
                         </div>
                       </div>
@@ -813,53 +813,52 @@ export default function App() {
         )}
 
         {currentView === 'join' && (
-          <div className="animate-fadeIn py-20 max-w-7xl mx-auto px-4">
+          <div className="animate-fadeIn py-12 max-w-7xl mx-auto px-4">
             {referralCode && (
-              <div className="bg-koppara-green/5 py-8 mb-12 border-y border-koppara-green/10 text-center rounded-3xl">
-                <p className="text-lg font-display italic text-koppara-gray mb-1">"Has recibido una invitación exclusiva"</p>
-                <p className="text-[10px] font-bold text-koppara-green uppercase tracking-[0.3em]">Beneficio Especial Activado: 10% OFF</p>
+              <div className="bg-koppara-green/5 py-4 mb-8 border-y border-koppara-green/10 text-center rounded-2xl">
+                <p className="text-base font-display italic text-koppara-gray mb-0.5">"Has recibido una invitación exclusiva"</p>
+                <p className="text-[9px] font-bold text-koppara-green uppercase tracking-[0.3em]">Beneficio Especial Activado: 10% OFF</p>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
               {[
                 { name: 'Básica', price: 0, perks: ['15% descuento', 'Catálogo Digital', 'Grupo WhatsApp'] },
                 { name: 'Luxury', price: 1500, perks: ['25% descuento', 'Kit Inicio Premium', '10% comisión referidos'], popular: true },
                 { name: 'Elite', price: 3500, perks: ['35% descuento', 'Kit Elite Gold', 'Envíos Gratis SIEMPRE'] },
               ].map(plan => (
-                <div key={plan.name} className={`p-10 rounded-lg border flex flex-col relative ${plan.popular ? 'bg-koppara-dark text-white shadow-2xl scale-105 z-10 border-transparent' : 'bg-white border-slate-100 shadow-xl text-koppara-gray'}`}>
-                  {plan.popular && <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-koppara-green text-white text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-full">Más Popular</span>}
-                  <h3 className={`text-2xl font-bold mb-2 ${plan.popular ? 'text-white' : 'text-koppara-gray'}`}>{plan.name}</h3>
-                  <div className="mb-10">
-                    <span className="text-4xl font-bold">{plan.price === 0 ? 'Gratis' : formatCurrency(plan.price)}</span>
-                    {plan.price > 0 && <span className={`text-[10px] uppercase font-bold ml-2 ${plan.popular ? 'text-white/40' : 'opacity-40'}`}>/ año</span>}
+                <div key={plan.name} className={`p-8 rounded-xl border flex flex-col relative transition-all ${plan.popular ? 'bg-koppara-dark text-white shadow-xl scale-102 z-10 border-transparent' : 'bg-white border-slate-100 shadow-lg text-koppara-gray'}`}>
+                  {plan.popular && <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-koppara-green text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full">Más Popular</span>}
+                  <h3 className={`text-xl font-bold mb-1 ${plan.popular ? 'text-white' : 'text-koppara-gray'}`}>{plan.name}</h3>
+                  <div className="mb-6">
+                    <span className="text-3xl font-bold">{plan.price === 0 ? 'Gratis' : formatCurrency(plan.price)}</span>
+                    {plan.price > 0 && <span className={`text-[9px] uppercase font-bold ml-1.5 ${plan.popular ? 'text-white/40' : 'opacity-40'}`}>/ año</span>}
                   </div>
-                  <ul className={`space-y-4 mb-10 flex-1 text-sm font-medium ${plan.popular ? 'text-white/90' : 'text-slate-600'}`}>
+                  <ul className={`space-y-2.5 mb-8 flex-1 text-xs font-medium ${plan.popular ? 'text-white/90' : 'text-slate-600'}`}>
                     {plan.perks.map(perk => (
                       <li key={perk} className="flex items-center gap-2">
-                        <CheckCircle2 size={16} className="text-koppara-green shrink-0" />
-                        <span className={perk.includes('Envíos Gratis') ? 'text-[#FFD700] font-black drop-shadow-sm' : ''}>{perk}</span>
+                        <CheckCircle2 size={14} className="text-koppara-green shrink-0" />
+                        <span className={perk.includes('Envíos Gratis') ? 'text-[#FFD700] font-black' : ''}>{perk}</span>
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => plan.price === 0 ? setCurrentView('catalog') : setSelectedCheckoutPlan(plan)} className={`w-full py-5 rounded-2xl font-bold transition uppercase tracking-widest text-xs ${plan.popular ? 'bg-koppara-green text-white' : 'bg-koppara-lightGray text-koppara-gray'}`}>
+                  <button onClick={() => plan.price === 0 ? setCurrentView('catalog') : setSelectedCheckoutPlan(plan)} className={`w-full py-4 rounded-xl font-bold transition uppercase tracking-widest text-[10px] ${plan.popular ? 'bg-koppara-green text-white' : 'bg-koppara-lightGray text-koppara-gray'}`}>
                     {plan.name === 'Básica' ? 'Registrarme' : 'Unirme Ahora'}
                   </button>
                 </div>
               ))}
             </div>
-            <div className="flex gap-4">
-              <button onClick={() => setShowProspectoPopup(true)} className="flex-1 bg-koppara-green text-white py-5 rounded-2xl font-bold font-display shadow-xl shadow-koppara-green/20 hover:scale-105 transition-all text-sm">Compartir con Cliente</button>
+            <div className="flex justify-center">
+              <button onClick={() => setShowProspectoPopup(true)} className="max-w-md w-full bg-koppara-green text-white py-4 rounded-xl font-bold font-display shadow-lg shadow-koppara-green/20 hover:scale-105 transition-all text-xs uppercase tracking-widest">Compartir con Cliente</button>
             </div>
           </div>
         )}
 
-        {/* MODAL Dashboard Socia Refined */}
         {currentView === 'socias' && distributor && (
-          <div className="bg-white min-h-[90vh] animate-fadeIn">
-            <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="bg-white animate-fadeIn">
+            <div className="max-w-7xl mx-auto px-6 py-8">
 
               {/* Nav CRM Interno */}
-              <div className="flex gap-4 mb-10 overflow-x-auto pb-4 no-scrollbar">
+              <div className="flex gap-3 mb-8 overflow-x-auto pb-2 no-scrollbar">
                 {[
                   { id: 'notifs', label: 'Mi Actividad', icon: Sparkles },
                   { id: 'prospectos', label: 'Mis Clientes', icon: Users },
@@ -868,36 +867,36 @@ export default function App() {
                   <button
                     key={t.id}
                     onClick={() => setCrmView(t.id as any)}
-                    className={`flex items-center gap-3 px-6 py-3 rounded-full font-bold text-xs whitespace-nowrap transition-all ${crmView === t.id ? 'bg-koppara-green text-white shadow-lg' : 'bg-slate-50 text-slate-400'
+                    className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${crmView === t.id ? 'bg-koppara-green text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
                       }`}
                   >
-                    <t.icon size={16} /> {t.label}
+                    <t.icon size={14} /> {t.label}
                   </button>
                 ))}
               </div>
 
               {crmView === 'notifs' && (
-                <div className="grid md:grid-cols-3 gap-8">
-                  <div className="md:col-span-2 space-y-8">
-                    <div className="bg-koppara-dark p-8 md:p-12 rounded-[2.5rem] text-white overflow-hidden relative group">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-koppara-green/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-6">
+                    <div className="bg-koppara-dark p-6 md:p-10 rounded-2xl text-white overflow-hidden relative group">
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-koppara-green/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
                       <div className="relative z-10 flex items-center justify-between">
                         <div>
-                          <div className="text-[10px] uppercase font-black tracking-widest text-koppara-green mb-4 opacity-80">Socia Nivel {distributor.nivel}</div>
-                          <h2 className="text-4xl md:text-5xl font-black mb-4">¡Hola, {distributor.nombre.split(' ')[0]}!</h2>
-                          <div className="flex flex-wrap gap-4 items-center">
-                            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
-                              <span className="text-[10px] font-bold text-white/60">Balance:</span>
-                              <span className="font-bold">{formatCurrency(distributor.gananciasAcumuladas)}</span>
+                          <div className="text-[9px] uppercase font-black tracking-widest text-koppara-green mb-3 opacity-80">Socia Nivel {distributor.nivel}</div>
+                          <h2 className="text-3xl md:text-3xl font-black mb-3 tracking-tight">¡Hola, {distributor.nombre.split(' ')[0]}!</h2>
+                          <div className="flex flex-wrap gap-3 items-center">
+                            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+                              <span className="text-[9px] font-bold text-white/50 lowercase">balance:</span>
+                              <span className="font-bold text-xs">{formatCurrency(distributor.gananciasAcumuladas)}</span>
                             </div>
-                            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
-                              <span className="text-[10px] font-bold text-white/60">Referidos:</span>
-                              <span className="font-bold">{distributor.referidosActivos}</span>
+                            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+                              <span className="text-[9px] font-bold text-white/50 lowercase">referidos:</span>
+                              <span className="font-bold text-xs">{distributor.referidosActivos}</span>
                             </div>
                           </div>
                         </div>
-                        <div className="hidden md:flex w-24 h-24 bg-white/5 rounded-3xl items-center justify-center text-koppara-green border border-white/10 transform group-hover:rotate-12 transition-transform">
-                          <UserCircle size={48} />
+                        <div className="hidden md:flex w-16 h-16 bg-white/5 rounded-2xl items-center justify-center text-koppara-green border border-white/10 transform group-hover:rotate-6 transition-transform">
+                          <UserCircle size={32} />
                         </div>
                       </div>
                     </div>
@@ -1053,11 +1052,11 @@ export default function App() {
                 </div>
               )}
 
-              <div className="mt-16 pt-8 border-t border-slate-100 flex items-center justify-between">
-                <button onClick={handleLogout} className="flex items-center gap-2 text-slate-400 font-bold text-sm hover:text-red-500 transition-colors">
-                  <LogOut size={18} /> Cerrar Sesión
+              <div className="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <button onClick={handleLogout} className="flex items-center gap-2 text-slate-400 font-bold text-xs hover:text-red-500 transition-colors">
+                  <LogOut size={16} /> Cerrar Sesión
                 </button>
-                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Dashboard V.2.1 • CRM Activo</p>
+                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Dashboard V.2.1 • CRM Activo</p>
               </div>
             </div>
           </div>
@@ -1067,29 +1066,29 @@ export default function App() {
       {/* Prospecto Registration Popup */}
       {showProspectoPopup && (
         <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Registro de Cliente</h3>
-            <p className="text-xs text-slate-400 mb-6">Para llevar un orden, por favor dinos a quién le envías esta cotización.</p>
-            <div className="space-y-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-800 mb-1.5">Registro de Cliente</h3>
+            <p className="text-[11px] text-slate-400 mb-5">Para llevar un orden, por favor dinos a quién le envías esta cotización.</p>
+            <div className="space-y-3">
               <input
                 placeholder="Nombre del Cliente"
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:border-koppara-green"
+                className="w-full bg-slate-50 border border-slate-100 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-koppara-green"
                 value={prospectoTemp.nombre}
                 onChange={e => setProspectoTemp({ ...prospectoTemp, nombre: e.target.value })}
               />
               <input
                 placeholder="WhatsApp (Ej: 4771234567)"
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:border-koppara-green"
+                className="w-full bg-slate-50 border border-slate-100 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-koppara-green"
                 value={prospectoTemp.telefono}
                 onChange={e => setProspectoTemp({ ...prospectoTemp, telefono: e.target.value })}
               />
               <button
                 onClick={handleShareWithCrm}
-                className="w-full bg-koppara-green text-white py-4 rounded-xl font-bold shadow-lg shadow-koppara-green/20"
+                className="w-full bg-koppara-green text-white py-3.5 rounded-xl font-bold shadow-md shadow-koppara-green/20 text-xs"
               >
                 Abrir WhatsApp y Registrar
               </button>
-              <button onClick={() => setShowProspectoPopup(false)} className="w-full text-slate-400 text-xs font-bold py-2">Cancelar</button>
+              <button onClick={() => setShowProspectoPopup(false)} className="w-full text-slate-400 text-[10px] font-bold py-1">Cancelar</button>
             </div>
           </div>
         </div>
@@ -1099,12 +1098,12 @@ export default function App() {
       {isCartOpen && (
         <div className="fixed inset-0 z-[100] flex justify-end">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
-          <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-slideIn">
-            <div className="p-10 flex items-center justify-between border-b">
-              <div className="flex items-center gap-4"><ShoppingCart className="text-koppara-green" /><h2 className="text-2xl font-bold font-display">Mi Cotización</h2></div>
-              <button onClick={() => setIsCartOpen(false)}><X size={28} /></button>
+          <div className="relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col animate-slideIn">
+            <div className="p-6 flex items-center justify-between border-b">
+              <div className="flex items-center gap-3"><ShoppingCart size={20} className="text-koppara-green" /><h2 className="text-xl font-bold font-display tracking-tight">Mi Cotización</h2></div>
+              <button onClick={() => setIsCartOpen(false)}><X size={24} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-10 space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {cart.length === 0 ? <p className="text-center opacity-30 mt-20">Bolsa vacía</p> : cart.map(item => (
                 <div key={item.id} className="flex gap-4 items-center">
                   <img src={item.image} className="w-16 h-16 rounded-xl object-cover" />
@@ -1118,14 +1117,14 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <div className="p-10 bg-koppara-lightGray border-t">
-              <div className="flex justify-between items-end mb-6"><span className="text-slate-400 font-bold uppercase text-[10px]">Total</span><span className="text-4xl font-bold text-koppara-gray">{formatCurrency(cartTotal)}</span></div>
+            <div className="p-6 bg-koppara-lightGray border-t">
+              <div className="flex justify-between items-end mb-4"><span className="text-slate-400 font-bold uppercase text-[9px]">Total</span><span className="text-2xl font-bold text-koppara-gray">{formatCurrency(cartTotal)}</span></div>
               <button
                 disabled={cart.length === 0}
                 onClick={handleShareWithCrm}
-                className="w-full bg-koppara-green text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl uppercase tracking-widest text-xs"
+                className="w-full bg-koppara-green text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg uppercase tracking-widest text-[10px]"
               >
-                <MessageCircle size={22} /> Cerrar Venta WhatsApp
+                <MessageCircle size={18} /> Cerrar Venta WhatsApp
               </button>
             </div>
           </div>
@@ -1172,9 +1171,9 @@ export default function App() {
       }
       {/* Removed duplicate modals here */}
 
-      <footer className="py-20 bg-koppara-lightGray text-center mt-20">
-        <KopparaLogo className="h-10 mx-auto mb-6 opacity-30 grayscale" />
-        <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2024 Koppara México • Luxury Experience</p>
+      <footer className="py-12 bg-koppara-lightGray text-center mt-12">
+        <KopparaLogo className="h-8 mx-auto mb-4 opacity-30 grayscale" />
+        <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2024 Koppara México • Luxury Experience</p>
       </footer>
       {/* Notification List Modal if Bell Clicked */}
       {
