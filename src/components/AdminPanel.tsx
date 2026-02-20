@@ -70,12 +70,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
   };
 
   const saveProduct = async (product: AdminProductForm) => {
+    // Validación de campos obligatorios
+    if (!product.nombre?.trim() || product.precio <= 0 || !product.referencia?.trim()) {
+      setMessage({
+        text: '⚠️ Faltan datos: Nombre, Precio y SKU son obligatorios.',
+        type: 'error'
+      });
+      return;
+    }
+
     const { isEditing, ...dataToSave } = product;
-    const { error } = await supabase.from('productos').upsert(dataToSave);
+
+    // Asegurar que guardamos en 'description' para coincidir con la nueva columna
+    const finalData = {
+      ...dataToSave,
+      description: dataToSave.description || (dataToSave as any).descripcion || ''
+    };
+
+    const { error } = await supabase.from('productos').upsert(finalData);
     if (error) {
       setMessage({ text: `Error al guardar: ${error.message}`, type: 'error' });
     } else {
-      setMessage({ text: 'Producto actualizado con éxito', type: 'success' });
+      setMessage({ text: '✅ Producto guardado correctamente', type: 'success' });
       loadProducts();
     }
   };
@@ -232,7 +248,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold text-slate-800 tracking-tight">Catálogo de Productos</h3>
                   <button
-                    onClick={() => setItems([{ id: crypto.randomUUID(), nombre: 'Nuevo Producto', referencia: 'KOP-', categoria: 'Relax', descripcion: '', precio: 0, activo: true, status: 'draft', imagen_url: '', beneficios: [], modo_uso: '', ingredientes: [], certificaciones: [], rituales: [], created_at: new Date().toISOString() }, ...items])}
+                    onClick={() => setItems([{ id: crypto.randomUUID(), nombre: 'Nuevo Producto', referencia: 'KOP-', categoria: 'Relax', description: '', precio: 0, activo: true, status: 'draft', imagen_url: '', beneficios: [], modo_uso: '', ingredientes: [], certificaciones: [], rituales: [], created_at: new Date().toISOString() }, ...items])}
                     className="flex items-center gap-2 bg-koppara-green text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-koppara-green/20 hover:scale-105 transition-transform text-xs"
                   >
                     <Plus size={18} /> Nuevo Producto
@@ -266,7 +282,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                                 <input
                                   className="font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 text-xs w-36"
                                   value={product.nombre}
+                                  onKeyDown={e => e.stopPropagation()}
                                   onChange={e => handleProductChange(product.id, 'nombre', e.target.value)}
+                                  placeholder="Nombre..."
                                 />
                                 <span className="text-[9px] text-slate-400 font-mono tracking-tighter">{product.id.slice(0, 8)}</span>
                               </div>
@@ -283,7 +301,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                             <input
                               className="text-[10px] text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-20 font-mono"
                               value={product.referencia}
+                              onKeyDown={e => e.stopPropagation()}
                               onChange={e => handleProductChange(product.id, 'referencia', e.target.value)}
+                              placeholder="KOP-..."
                             />
                           </td>
                           <td className="px-4 py-3 font-mono font-bold text-slate-700">
@@ -293,6 +313,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                                 type="number"
                                 className="w-16 bg-transparent border-none p-0 focus:ring-0 text-xs font-bold"
                                 value={product.precio}
+                                onKeyDown={e => e.stopPropagation()}
                                 onChange={e => handleProductChange(product.id, 'precio', Number(e.target.value))}
                               />
                             </div>
@@ -372,9 +393,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Asunto</label>
                     <input
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 font-bold outline-none focus:border-koppara-green"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-bold text-sm outline-none focus:border-koppara-green"
                       placeholder="Ej: Nuevos precios de temporada..."
                       value={notifForm.titulo}
+                      onKeyDown={e => e.stopPropagation()}
                       onChange={e => setNotifForm({ ...notifForm, titulo: e.target.value })}
                     />
                   </div>
@@ -382,9 +404,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cuerpo del Mensaje</label>
                     <textarea
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 min-h-[150px] outline-none focus:border-koppara-green"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm min-h-[120px] outline-none focus:border-koppara-green"
                       placeholder="Escribe el contenido detallado aquí..."
                       value={notifForm.cuerpo}
+                      onKeyDown={e => e.stopPropagation()}
                       onChange={e => setNotifForm({ ...notifForm, cuerpo: e.target.value })}
                     />
                   </div>
@@ -632,18 +655,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Descripción del Producto</label>
                     <textarea
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[120px]"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs focus:border-koppara-green min-h-[100px]"
                       placeholder="Describe la experiencia de lujo..."
                       value={editingProduct.description || ''}
+                      onKeyDown={e => e.stopPropagation()}
                       onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })}
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Modo de Uso / Ritual</label>
                     <textarea
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[100px]"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs focus:border-koppara-green min-h-[80px]"
                       placeholder="Paso a paso del ritual..."
                       value={editingProduct.modo_uso || ''}
+                      onKeyDown={e => e.stopPropagation()}
                       onChange={e => setEditingProduct({ ...editingProduct, modo_uso: e.target.value })}
                     />
                   </div>
@@ -654,18 +679,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Beneficios Clave (Separados por coma)</label>
                     <textarea
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[80px]"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs focus:border-koppara-green min-h-[60px]"
                       placeholder="Relajación profunda, Piel hidratada, etc..."
                       value={(editingProduct.beneficios || []).join(', ')}
+                      onKeyDown={e => e.stopPropagation()}
                       onChange={e => setEditingProduct({ ...editingProduct, beneficios: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Ingredientes Botánicos (Separados por coma)</label>
                     <textarea
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[80px]"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs focus:border-koppara-green min-h-[60px]"
                       placeholder="Aceite de coco, Menta piperita, etc..."
                       value={(editingProduct.ingredientes || []).join(', ')}
+                      onKeyDown={e => e.stopPropagation()}
                       onChange={e => setEditingProduct({ ...editingProduct, ingredientes: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                     />
                   </div>

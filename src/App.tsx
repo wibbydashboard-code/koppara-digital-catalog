@@ -49,7 +49,7 @@ const KopparaLogo = ({ className = "h-20", compact = false }: { className?: stri
   }
 
   return (
-    <div className={`flex items-center gap-4 ${className} group`}>
+    <div className={`flex items-center ${className} group`}>
       <div className="h-full aspect-square relative flex items-center justify-center">
         {!imgError ? (
           <img
@@ -61,14 +61,6 @@ const KopparaLogo = ({ className = "h-20", compact = false }: { className?: stri
         ) : (
           <div className="w-12 h-12 bg-koppara-green rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shadow-koppara-green/20">K</div>
         )}
-      </div>
-      <div className="flex flex-col justify-center">
-        <span className="text-2xl md:text-3xl font-black text-koppara-gray tracking-[-0.05em] leading-none mb-1">
-          Koppara<span className="text-koppara-green">.</span>
-        </span>
-        <span className="text-[7px] md:text-[9px] uppercase font-black tracking-[0.4em] text-slate-400 leading-none">
-          Cosmética Botánica
-        </span>
       </div>
     </div>
   );
@@ -714,7 +706,7 @@ export default function App() {
           </nav>
 
           <div className="flex-[2] flex items-center justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <KopparaLogo className="h-[60px] group-hover:scale-105 transition-transform" />
+            <KopparaLogo className={`${scrolled ? 'h-[50px]' : 'h-[90px]'} group-hover:scale-105 transition-all duration-300`} />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
@@ -1173,7 +1165,7 @@ export default function App() {
 
       <footer className="py-12 bg-koppara-lightGray text-center mt-12">
         <KopparaLogo className="h-8 mx-auto mb-4 opacity-30 grayscale" />
-        <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2024 Koppara México • Luxury Experience</p>
+        <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2024 Koppara México • Cosmética Orgánica</p>
       </footer>
       {/* Notification List Modal if Bell Clicked */}
       {

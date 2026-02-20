@@ -27,7 +27,8 @@ export interface Producto {
   nombre: string
   referencia: string
   categoria: string
-  descripcion: string
+  description: string // Sincronizado con DB
+  descripcion?: string // Compatibilidad legacy
   beneficios: string[]
   modo_uso: string
   ingredientes: string[]
