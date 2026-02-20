@@ -1204,20 +1204,73 @@ export default function App() {
 }
 
 const ProductModal: React.FC<{ product: Product; onClose: () => void; onAddToCart: (p: Product) => void; }> = ({ product, onClose, onAddToCart }) => (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fadeIn">
-    <div className="bg-white w-full max-w-5xl rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row animate-slideUp border border-slate-100">
-      <div className="md:w-1/2 h-80 md:h-auto relative"><img src={product.image} className="w-full h-full object-cover" /><button onClick={onClose} className="absolute top-6 right-6 bg-black/20 text-white p-2 rounded-full"><X size={20} /></button></div>
-      <div className="p-12 md:w-1/2 flex flex-col">
-        <span className="text-[10px] font-bold text-koppara-green uppercase tracking-widest mb-4">{product.category}</span>
-        <h2 className="text-4xl font-bold text-koppara-gray mb-6">{product.name}</h2>
-        <p className="text-slate-500 mb-8 font-medium italic">"{product.description}"</p>
-        <div className="bg-koppara-lightGray rounded-3xl p-8 mb-8 text-xs font-bold text-slate-600">
-          <h4 className="uppercase text-slate-300 mb-4 tracking-widest">Incluye ritual:</h4>
-          <ul className="grid grid-cols-2 gap-2">{product.products.map(it => <li key={it} className="flex items-center gap-2"><CheckCircle2 size={12} className="text-koppara-green" /> {it}</li>)}</ul>
+  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-0 md:p-6 animate-fadeIn">
+    <div className="bg-white w-full h-full md:h-auto md:max-w-5xl md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-slideUp relative">
+
+      {/* Botón Cerrar Flotante (Visible en todo momento) */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-50 bg-white/90 md:bg-slate-100 text-slate-800 p-3 rounded-full shadow-lg hover:bg-red-50 hover:text-red-500 transition-all active:scale-90"
+        aria-label="Cerrar vista"
+      >
+        <X size={24} />
+      </button>
+
+      {/* Área de Imagen */}
+      <div className="w-full md:w-1/2 h-[40vh] md:h-auto relative bg-slate-50">
+        <img
+          src={product.image}
+          className="w-full h-full object-cover"
+          alt={product.name}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent md:hidden" />
+      </div>
+
+      {/* Área de Contenido con Scroll Propio */}
+      <div className="flex-1 overflow-y-auto p-6 md:p-12 flex flex-col">
+        <div className="mb-8">
+          <span className="inline-block px-3 py-1 bg-koppara-green/10 text-koppara-green text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
+            {product.category}
+          </span>
+          <h2 className="text-3xl md:text-5xl font-black text-koppara-gray mb-4 leading-tight">
+            {product.name}
+          </h2>
+          <p className="text-slate-500 text-sm md:text-base font-medium italic leading-relaxed">
+            "{product.description}"
+          </p>
         </div>
-        <div className="mt-auto flex items-center justify-between pt-8 border-t">
-          <div><p className="text-[10px] font-bold text-slate-300 uppercase mb-1">Precio Sugerido</p><p className="text-3xl font-bold text-koppara-gray">{formatCurrency(product.price)}</p></div>
-          <button onClick={() => { onAddToCart(product); onClose(); }} className="bg-koppara-green text-white font-bold px-10 py-5 rounded-2xl shadow-xl hover:bg-koppara-forest flex items-center gap-2 uppercase tracking-widest text-[10px]">Añadir <ArrowRight size={16} /></button>
+
+        {/* Sección Ritual / Detalles */}
+        {product.products && product.products.length > 0 && (
+          <div className="bg-slate-50 rounded-3xl p-6 md:p-8 mb-8 border border-slate-100">
+            <h4 className="text-[10px] uppercase font-black text-slate-400 mb-4 tracking-[0.2em]">Incluye en el ritual:</h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {product.products.map(it => (
+                <li key={it} className="flex items-center gap-3 text-xs md:text-sm font-bold text-slate-600">
+                  <div className="w-5 h-5 bg-koppara-green/20 rounded-full flex items-center justify-center text-koppara-green">
+                    <CheckCircle2 size={12} />
+                  </div>
+                  {it}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Footer del Modal (Fijado abajo en Desktop) */}
+        <div className="mt-auto pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="text-center sm:text-left">
+            <p className="text-[10px] font-bold text-slate-300 uppercase mb-1 tracking-widest">Inversión Sugerida</p>
+            <p className="text-3xl md:text-4xl font-black text-koppara-gray tracking-tighter">
+              {formatCurrency(product.price)}
+            </p>
+          </div>
+          <button
+            onClick={() => { onAddToCart(product); onClose(); }}
+            className="w-full sm:w-auto bg-koppara-green text-white font-black px-10 py-5 rounded-2xl shadow-xl shadow-koppara-green/20 hover:bg-koppara-forest flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-[10px] transition-all hover:-translate-y-1 active:scale-95"
+          >
+            Añadir a Bolsa <Plus size={18} />
+          </button>
         </div>
       </div>
     </div>

@@ -62,6 +62,10 @@ Plataforma de empoderamiento para distribuidoras de cosmética botánica, transf
 - **Aprendizaje**: El uso de `rewrites` en `vercel.json` puede causar errores 404 intermitentes al entrar directamente a rutas secundarias.
 - **Ajuste**: Se migró a la configuración de `routes` con `{ "handle": "filesystem" }` para asegurar que Vercel sirva el `index.html` en cualquier ruta de la SPA.
 
+### v1.1.3 (Feb 2026) - UX Móvil y Modales
+- **Aprendizaje**: Los modales con anchos fijos o paddings excesivos bloqueaban la navegación en dispositivos móviles pequeños.
+- **Ajuste**: Se rediseñó el `ProductModal` con layout adaptativo (scroll vertical forzado en móvil), botón de cierre flotante de alta visibilidad y espaciados dinámicos.
+
 ---
 
 ## 📝 Instrucción para el Agente de IA
