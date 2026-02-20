@@ -66,6 +66,10 @@ Plataforma de empoderamiento para distribuidoras de cosmética botánica, transf
 - **Aprendizaje**: Los modales con anchos fijos o paddings excesivos bloqueaban la navegación en dispositivos móviles pequeños.
 - **Ajuste**: Se rediseñó el `ProductModal` con layout adaptativo (scroll vertical forzado en móvil), botón de cierre flotante de alta visibilidad y espaciados dinámicos.
 
+### v1.1.4 (Feb 2026) - Diagnóstico de Infraestructura
+- **Aprendizaje**: El error "Failed to fetch" es ambiguo para el usuario final y suele indicar un proyecto de Supabase pausado.
+- **Ajuste**: Se implementó una lógica de captura de errores en el Auth Service que sugiere explícitamente revisar si el proyecto está pausado o si el ID es incorrecto.
+
 ---
 
 ## 📝 Instrucción para el Agente de IA

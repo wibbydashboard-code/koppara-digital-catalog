@@ -157,7 +157,13 @@ const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
         setMensaje({ text: '✅ Revisa tu WhatsApp para el código de acceso', type: 'success' });
       }
     } catch (error: any) {
-      setMensaje({ text: '❌ Error: ' + error.message, type: 'error' });
+      const isNetworkError = error.message === 'Failed to fetch' || error.message?.includes('network');
+      setMensaje({
+        text: isNetworkError
+          ? '❌ Error de Conexión: El servidor no responde. Verifica si tu proyecto de Supabase está PAUSADO o si el ID es correcto.'
+          : '❌ Error: ' + error.message,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
