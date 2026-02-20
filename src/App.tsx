@@ -5,7 +5,7 @@ import {
   UserCircle, Sparkles, ArrowRight, Package,
   CheckCircle2, Plus, Minus, Loader2, LogOut,
   Copy, Gift, ShieldCheck, Info, Phone, CreditCard, Wallet, Download,
-  Bell, Users, Megaphone, FileText
+  Bell, Users, Megaphone, FileText, Eye
 } from 'lucide-react';
 import { PRODUCTS as FALLBACK_PRODUCTS, CATEGORIES } from './constants';
 import { Product, Distributor, CartItem } from './types';
@@ -407,9 +407,6 @@ export default function App() {
     }
     loadProducts();
 
-    // Persistencia de Carrito
-    localStorage.setItem('koppara_cart', JSON.stringify(cart));
-
     // Detección de Referido
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
@@ -425,6 +422,11 @@ export default function App() {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Persistencia de Carrito (separado para evitar loop)
+    localStorage.setItem('koppara_cart', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
@@ -698,15 +700,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white font-sans text-koppara-gray">
       {/* Official Header */}
-      <header className={`no-print sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'py-1' : 'py-3 px-4 md:px-8'}`}>
-        <div className={`max-w-7xl mx-auto flex items-center justify-between rounded-full floating-nav transition-all duration-300 ${scrolled ? 'px-4 py-1.5 border-b' : 'px-6 py-2.5 border border-slate-100 shadow-lg'}`}>
+      <header className="no-print sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 h-16">
           <nav className="hidden lg:flex items-center gap-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest flex-1">
             <button onClick={() => setCurrentView('catalog')} className={`hover:text-koppara-green transition ${currentView === 'catalog' ? 'text-koppara-green' : ''}`}>Catálogo</button>
             <button onClick={() => setCurrentView(distributor?.isSocia ? 'socias' : 'join')} className={`hover:text-koppara-green transition ${currentView === 'socias' || currentView === 'join' ? 'text-koppara-green' : ''}`}>Membresía</button>
           </nav>
 
-          <div className="flex-[2] flex items-center justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <KopparaLogo className={`${scrolled ? 'h-[50px]' : 'h-[90px]'} group-hover:scale-105 transition-all duration-300`} />
+          <div className="flex-[2] flex items-center justify-center cursor-pointer" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <KopparaLogo className="h-[52px] hover:opacity-80 transition-opacity duration-200" />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
@@ -768,10 +770,40 @@ export default function App() {
                 <Sparkles size={10} /> Colección Luxury 2024
               </div>
               <h1 className="text-2xl md:text-3xl font-bold text-koppara-gray mb-4 leading-tight">Tu belleza,<br />desde la raíz.</h1>
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2 mb-5">
                 {CATEGORIES.map(cat => (
                   <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border transition-all ${activeCategory === cat ? 'bg-koppara-green text-white border-koppara-green shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-koppara-green'}`}>{cat}</button>
                 ))}
+              </div>
+
+              {/* Barra de compartir catálogo PDF */}
+              <div className="inline-flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 shadow-sm">
+                <div className="flex flex-col text-left">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Catálogo Completo PDF</span>
+                  <span className="text-xs font-bold text-slate-700">Toda la colección Koppara 2024</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={MASTER_CATALOG_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl font-bold text-[10px] flex items-center gap-1.5 transition-all"
+                    title="Ver catálogo PDF"
+                  >
+                    <Eye size={13} /> Ver
+                  </a>
+                  <button
+                    onClick={() => {
+                      const nombreVendedora = distributor?.nombre || distributor?.name || 'tu distribuidora Koppara';
+                      const msg = `¡Hola! 👋 Soy *${nombreVendedora}*, distribuidora oficial de *Koppara Cosmética Orgánica* 🌿\n\nTe comparto nuestro catálogo completo con toda la colección 2024:\n\n📖 *Ver catálogo aquí:* ${MASTER_CATALOG_URL}\n\n✨ Encuentra cremas, rituales, productos faciales y corporales de alta calidad.\n\n¿Te gustaría conocer más o hacer un pedido? ¡Con gusto te atiendo! 💚`;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-xl font-bold text-[10px] flex items-center gap-1.5 transition-all shadow-sm"
+                    title="Compartir catálogo por WhatsApp"
+                  >
+                    <MessageCircle size={13} /> Compartir vía WhatsApp
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -888,7 +920,7 @@ export default function App() {
                       <div className="relative z-10 flex items-center justify-between">
                         <div>
                           <div className="text-[9px] uppercase font-black tracking-widest text-koppara-green mb-3 opacity-80">Socia Nivel {distributor.nivel}</div>
-                          <h2 className="text-3xl md:text-3xl font-black mb-3 tracking-tight">¡Hola, {distributor.nombre.split(' ')[0]}!</h2>
+                          <h2 className="text-2xl font-black mb-3 tracking-tight">¡Hola, {(distributor.nombre || distributor.name || 'Socia').split(' ')[0]}!</h2>
                           <div className="flex flex-wrap gap-3 items-center">
                             <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
                               <span className="text-[9px] font-bold text-white/50 lowercase">balance:</span>
@@ -935,20 +967,30 @@ export default function App() {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 group shadow-sm">
-                      <h4 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <Sparkles size={18} className="text-amber-500" /> Comparte tu Catálogo
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 group shadow-sm">
+                      <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <Sparkles size={16} className="text-amber-500" /> Comparte tu Catálogo
                       </h4>
-                      <div className="bg-white p-4 rounded-2xl border border-slate-200 mb-6">
-                        <p className="text-[10px] font-black tracking-widest text-slate-300 uppercase mb-2">Tu link único</p>
-                        <div className="bg-slate-50 p-3 rounded-xl text-[11px] font-mono text-slate-400 overflow-hidden text-ellipsis mb-4">
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 mb-4">
+                        <p className="text-[9px] font-black tracking-widest text-slate-300 uppercase mb-1.5">Tu link único</p>
+                        <div className="bg-slate-50 p-2.5 rounded-lg text-[10px] font-mono text-slate-400 overflow-hidden text-ellipsis mb-3">
                           koppara.vercel.app/?ref={distributor.codigoReferido}
                         </div>
-                        <button onClick={() => { navigator.clipboard.writeText(`https://koppara.vercel.app/?ref=${distributor.codigoReferido}`); alert("¡Copiado al portapapeles!"); }} className="w-full bg-koppara-dark text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-black transition">
-                          <Copy size={16} /> Copiar Link
+                        <button onClick={() => { navigator.clipboard.writeText(`https://koppara.vercel.app/?ref=${distributor.codigoReferido}`); alert("¡Copiado al portapapeles!"); }} className="w-full bg-koppara-dark text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-black transition">
+                          <Copy size={14} /> Copiar Link
                         </button>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed text-center">Gana el 10% de comisión por cada compra que realicen tus clientes.</p>
+                      <button
+                        onClick={() => {
+                          const nombre = distributor.nombre || distributor.name || 'tu distribuidora Koppara';
+                          const msg = `¡Hola! 👋 Soy *${nombre}*, distribuidora oficial de *Koppara Cosmética Orgánica* 🌿\n\nTe comparto nuestro catálogo completo de productos natúrales y orgánicos de alta calidad:\n\n📖 *Ver catálogo aquí:* ${MASTER_CATALOG_URL}\n\n✨ Cremas, rituales faciales, corporales y capilares.\n\n¿Te gustaría hacer un pedido o conocer más? ¡Con gusto te asesoro! 💚`;
+                          window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
+                      >
+                        <MessageCircle size={14} /> Compartir Catálogo PDF vía WA
+                      </button>
+                      <p className="text-[10px] text-slate-400 leading-relaxed text-center mt-3">Gana el 10% de comisión por cada compra que realicen tus clientes.</p>
                     </div>
                   </div>
                 </div>
@@ -1143,8 +1185,8 @@ export default function App() {
       {
         isPdfModalOpen && (
           <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fadeIn">
-            <div className="bg-white w-full max-w-lg rounded-lg shadow-md border border-slate-100">
-              <button onClick={() => setIsPdfModalOpen(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><X size={24} /></button>
+            <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-100 relative overflow-hidden">
+              <button onClick={() => setIsPdfModalOpen(false)} className="absolute top-4 right-4 z-10 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1.5"><X size={18} /></button>
               <div className="text-center mb-8">
                 <KopparaLogo className="h-10 mx-auto mb-5" />
                 <h2 className="text-2xl font-bold text-koppara-gray">Descargar Catalogo PDF</h2>
@@ -1178,11 +1220,11 @@ export default function App() {
 
       <footer className="py-12 bg-koppara-lightGray text-center mt-12">
         <KopparaLogo className="h-8 mx-auto mb-4 opacity-30 grayscale" />
-        <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2024 Koppara México • Cosmética Orgánica</p>
+        <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.4em]">&copy; 2025 Koppara México • Cosmética Orgánica</p>
       </footer>
       {/* Notification List Modal if Bell Clicked */}
       {
-        unreadNotif === 0 && notificaciones.length > 0 && (
+        unreadNotif > 0 && notificaciones.length > 0 && (
           <div className="fixed bottom-24 right-10 z-[200] w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 animate-slideUp">
             <div className="flex items-center justify-between mb-4">
               <h4 className="font-bold text-slate-800">Avisos Recientes</h4>

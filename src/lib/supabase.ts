@@ -8,14 +8,6 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://rgrdogwwczlxakeggnbu.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJncmRvZ3d3Y3pseGFrZWdnbmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MzQwMTgsImV4cCI6MjA4NzExMDAxOH0.K0MrGpM6QiZ8eEIXXNyVwXEyKwIaGyb_n3heb5mbfDI'
 
-console.log('🔍 Inicializando Supabase...')
-console.log('URL:', supabaseUrl)
-console.log('Key Status:', supabaseAnonKey ? '✅ Presente' : '❌ Faltante')
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('❌ Error: Faltan credenciales de Supabase')
-}
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ============================================
@@ -93,17 +85,9 @@ export interface Notificacion {
  */
 export async function verificarConexion(): Promise<boolean> {
   try {
-    console.log('🔄 Probando conexión a Supabase...')
-    // Usamos select('id') para una consulta ligera
-    const { data, error } = await supabase.from('productos').select('id').limit(1)
-    if (error) {
-      console.error('❌ Error de conexión:', error)
-      return false
-    }
-    console.log('✅ Conexión a Supabase exitosa')
-    return true
-  } catch (error) {
-    console.error('❌ No se pudo conectar a Supabase:', error)
-    return false
+    const { error } = await supabase.from('productos').select('id').limit(1)
+    return !error;
+  } catch {
+    return false;
   }
 }
