@@ -763,14 +763,14 @@ export default function App() {
       <main>
         {currentView === 'catalog' && (
           <div className="animate-fadeIn">
-            <section className="pt-12 pb-8 text-center max-w-4xl mx-auto px-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-koppara-green/10 text-koppara-green rounded-full text-[9px] font-bold uppercase tracking-[0.3em] mb-4">
+            <section className="pt-8 pb-6 text-center max-w-4xl mx-auto px-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-koppara-green/10 text-koppara-green rounded-full text-[9px] font-bold uppercase tracking-[0.3em] mb-3">
                 <Sparkles size={10} /> Colección Luxury 2024
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-koppara-gray mb-6 leading-tight">Tu belleza,<br />desde la raíz.</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-koppara-gray mb-4 leading-tight">Tu belleza,<br />desde la raíz.</h1>
               <div className="flex flex-wrap justify-center gap-2">
                 {CATEGORIES.map(cat => (
-                  <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${activeCategory === cat ? 'bg-koppara-green text-white border-koppara-green shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-koppara-green'}`}>{cat}</button>
+                  <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border transition-all ${activeCategory === cat ? 'bg-koppara-green text-white border-koppara-green shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-koppara-green'}`}>{cat}</button>
                 ))}
               </div>
             </section>
@@ -779,19 +779,32 @@ export default function App() {
               {filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredProducts.map(p => (
-                    <div key={p.id} className="luxury-card group bg-white rounded-xl border border-slate-100 shadow-sm p-5 flex flex-col cursor-pointer transition-all hover:border-koppara-green/20" onClick={() => setSelectedProduct(p)}>
-                      <div className="h-48 rounded-lg shadow-sm border border-slate-50 mb-4 overflow-hidden relative">
-                        <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest text-koppara-green shadow-sm">{p.category}</div>
+                    <div key={p.id} className="luxury-card group bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col cursor-pointer transition-all hover:border-koppara-green/20" onClick={() => setSelectedProduct(p)}>
+                      <div className="h-44 rounded-lg shadow-sm border border-slate-50 mb-3 overflow-hidden relative">
+                        <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={p.name} />
+                        <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest text-koppara-green shadow-sm">{p.category}</div>
                       </div>
-                      <div className="px-1 flex-1 flex flex-col">
-                        <h3 className="text-lg font-bold text-koppara-gray mb-1.5">{p.name}</h3>
-                        <p className="text-[11px] text-slate-400 line-clamp-2 mb-4 leading-relaxed">"{p.description}"</p>
+                      <div className="px-0.5 flex-1 flex flex-col">
+                        <h3 className="text-sm font-bold text-koppara-gray mb-1">{p.name}</h3>
+                        <p className="text-[10px] text-slate-400 line-clamp-2 mb-3 leading-relaxed">"{p.description}"</p>
                         <div className="mt-auto flex items-center justify-between">
-                          <p className="text-xl font-bold text-koppara-gray tracking-tight">{formatCurrency(p.price)}</p>
-                          <button onClick={(e) => { e.stopPropagation(); handleAddToCart(p); }} className="w-10 h-10 bg-koppara-green/5 hover:bg-koppara-green text-koppara-green hover:text-white rounded-xl transition-all flex items-center justify-center border border-koppara-green/10">
-                            <Plus size={20} />
-                          </button>
+                          <p className="text-lg font-bold text-koppara-gray tracking-tight">{formatCurrency(p.price)}</p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const msg = `¡Hola! 👋 Mira este producto increíble de Koppara Cosmética Orgánica:\n\n✨ *${p.name}*\n${p.description}\n\n💰 Precio: *${formatCurrency(p.price)}*\n\n🛒 Ve el catálogo completo aquí: ${window.location.origin}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                              }}
+                              className="w-8 h-8 bg-green-50 hover:bg-green-500 text-green-500 hover:text-white rounded-lg transition-all flex items-center justify-center border border-green-100"
+                              title="Compartir por WhatsApp"
+                            >
+                              <MessageCircle size={14} />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleAddToCart(p); }} className="w-8 h-8 bg-koppara-green/5 hover:bg-koppara-green text-koppara-green hover:text-white rounded-lg transition-all flex items-center justify-center border border-koppara-green/10">
+                              <Plus size={16} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1206,20 +1219,20 @@ export default function App() {
 }
 
 const ProductModal: React.FC<{ product: Product; onClose: () => void; onAddToCart: (p: Product) => void; }> = ({ product, onClose, onAddToCart }) => (
-  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-0 md:p-6 animate-fadeIn">
-    <div className="bg-white w-full h-full md:h-auto md:max-w-5xl md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-slideUp relative">
+  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-0 md:p-4 animate-fadeIn">
+    <div className="bg-white w-full h-full md:h-auto md:max-w-4xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-slideUp relative">
 
-      {/* Botón Cerrar Flotante (Visible en todo momento) */}
+      {/* Botón Cerrar Flotante */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-50 bg-white/90 md:bg-slate-100 text-slate-800 p-3 rounded-full shadow-lg hover:bg-red-50 hover:text-red-500 transition-all active:scale-90"
+        className="absolute top-3 right-3 z-50 bg-white/90 md:bg-slate-100 text-slate-800 p-2 rounded-full shadow-md hover:bg-red-50 hover:text-red-500 transition-all active:scale-90"
         aria-label="Cerrar vista"
       >
-        <X size={24} />
+        <X size={18} />
       </button>
 
       {/* Área de Imagen */}
-      <div className="w-full md:w-1/2 h-[40vh] md:h-auto relative bg-slate-50">
+      <div className="w-full md:w-5/12 h-[35vh] md:h-auto relative bg-slate-50">
         <img
           src={product.image}
           className="w-full h-full object-cover"
@@ -1228,29 +1241,29 @@ const ProductModal: React.FC<{ product: Product; onClose: () => void; onAddToCar
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent md:hidden" />
       </div>
 
-      {/* Área de Contenido con Scroll Propio */}
-      <div className="flex-1 overflow-y-auto p-6 md:p-12 flex flex-col">
-        <div className="mb-8">
-          <span className="inline-block px-3 py-1 bg-koppara-green/10 text-koppara-green text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
+      {/* Área de Contenido */}
+      <div className="flex-1 overflow-y-auto p-5 md:p-8 flex flex-col">
+        <div className="mb-5">
+          <span className="inline-block px-2.5 py-0.5 bg-koppara-green/10 text-koppara-green text-[9px] font-black uppercase tracking-widest rounded-full mb-3">
             {product.category}
           </span>
-          <h2 className="text-3xl md:text-5xl font-black text-koppara-gray mb-4 leading-tight">
+          <h2 className="text-xl md:text-2xl font-black text-koppara-gray mb-2 leading-tight">
             {product.name}
           </h2>
-          <p className="text-slate-500 text-sm md:text-base font-medium italic leading-relaxed">
+          <p className="text-slate-500 text-xs font-medium italic leading-relaxed">
             "{product.description}"
           </p>
         </div>
 
         {/* Sección Ritual / Detalles */}
         {product.products && product.products.length > 0 && (
-          <div className="bg-slate-50 rounded-3xl p-6 md:p-8 mb-8 border border-slate-100">
-            <h4 className="text-[10px] uppercase font-black text-slate-400 mb-4 tracking-[0.2em]">Incluye en el ritual:</h4>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-slate-50 rounded-xl p-4 md:p-5 mb-5 border border-slate-100">
+            <h4 className="text-[9px] uppercase font-black text-slate-400 mb-3 tracking-[0.2em]">Incluye en el ritual:</h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {product.products.map(it => (
-                <li key={it} className="flex items-center gap-3 text-xs md:text-sm font-bold text-slate-600">
-                  <div className="w-5 h-5 bg-koppara-green/20 rounded-full flex items-center justify-center text-koppara-green">
-                    <CheckCircle2 size={12} />
+                <li key={it} className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                  <div className="w-4 h-4 bg-koppara-green/20 rounded-full flex items-center justify-center text-koppara-green shrink-0">
+                    <CheckCircle2 size={10} />
                   </div>
                   {it}
                 </li>
@@ -1259,20 +1272,32 @@ const ProductModal: React.FC<{ product: Product; onClose: () => void; onAddToCar
           </div>
         )}
 
-        {/* Footer del Modal (Fijado abajo en Desktop) */}
-        <div className="mt-auto pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+        {/* Footer del Modal */}
+        <div className="mt-auto pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-center sm:text-left">
-            <p className="text-[10px] font-bold text-slate-300 uppercase mb-1 tracking-widest">Inversión Sugerida</p>
-            <p className="text-3xl md:text-4xl font-black text-koppara-gray tracking-tighter">
+            <p className="text-[9px] font-bold text-slate-300 uppercase mb-0.5 tracking-widest">Inversión Sugerida</p>
+            <p className="text-xl md:text-2xl font-black text-koppara-gray tracking-tighter">
               {formatCurrency(product.price)}
             </p>
           </div>
-          <button
-            onClick={() => { onAddToCart(product); onClose(); }}
-            className="w-full sm:w-auto bg-koppara-green text-white font-black px-10 py-5 rounded-2xl shadow-xl shadow-koppara-green/20 hover:bg-koppara-forest flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-[10px] transition-all hover:-translate-y-1 active:scale-95"
-          >
-            Añadir a Bolsa <Plus size={18} />
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                const msg = `¡Hola! 👋 Mira este producto increíble de Koppara Cosmética Orgánica:\n\n✨ *${product.name}*\n${product.description}\n\n💰 Precio: *${formatCurrency(product.price)}*\n\n🛒 Ve el catálogo completo aquí: ${window.location.origin}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="bg-green-500 text-white font-bold px-4 py-3 rounded-xl shadow-md hover:bg-green-600 flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:scale-95 text-xs"
+              title="Compartir por WhatsApp"
+            >
+              <MessageCircle size={16} /> Compartir
+            </button>
+            <button
+              onClick={() => { onAddToCart(product); onClose(); }}
+              className="flex-1 sm:flex-none bg-koppara-green text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-koppara-green/20 hover:bg-koppara-forest flex items-center justify-center gap-2 uppercase tracking-widest text-[9px] transition-all hover:-translate-y-0.5 active:scale-95"
+            >
+              Añadir a Bolsa <Plus size={16} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
