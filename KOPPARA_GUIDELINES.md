@@ -58,6 +58,10 @@ Plataforma de empoderamiento para distribuidoras de cosmética botánica, transf
 - **Aprendizaje**: La barra de búsqueda competía por espacio con el logo en pantallas medianas.
 - **Ajuste**: Se limitó el ancho de búsqueda a un **máximo de 300px** para dar "aire" al branding central.
 
+### v1.1.2 (Feb 2026) - Estabilización de Despliegue
+- **Aprendizaje**: El uso de `rewrites` en `vercel.json` puede causar errores 404 intermitentes al entrar directamente a rutas secundarias.
+- **Ajuste**: Se migró a la configuración de `routes` con `{ "handle": "filesystem" }` para asegurar que Vercel sirva el `index.html` en cualquier ruta de la SPA.
+
 ---
 
 ## 📝 Instrucción para el Agente de IA
