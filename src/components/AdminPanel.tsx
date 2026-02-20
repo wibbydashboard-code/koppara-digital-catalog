@@ -104,9 +104,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
     setMessage(null);
 
     try {
-      const fileName = 'catalogo_koppara_2026.pdf';
+      const fileName = 'catalogo_maestro_koppara.pdf';
       const { error } = await supabase.storage
-        .from('assets')
+        .from('catalogo-assets')
         .upload(fileName, file, {
           upsert: true,
           contentType: 'application/pdf',
@@ -410,7 +410,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                       </div>
 
                       <p className="text-[10px] text-slate-400 mt-4 font-mono italic">
-                        Ruta Destino: storage/assets/catalogo_koppara_2026.pdf
+                        Ruta Destino: storage/catalogo-assets/catalogo_maestro_koppara.pdf
                       </p>
                     </div>
                   </div>

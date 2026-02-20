@@ -321,7 +321,7 @@ const CheckoutModal: React.FC<{
 // --- MAIN APP ---
 
 // URL Fija del Catálogo Maestro en Supabase Storage
-const MASTER_CATALOG_URL = 'https://rgrdogwwczlxakeggnbu.supabase.co/storage/v1/object/public/assets/catalogo_koppara_2026.pdf';
+const MASTER_CATALOG_URL = 'https://rgrdogwwczlxakeggnbu.supabase.co/storage/v1/object/public/catalogo-assets/catalogo_maestro_koppara.pdf';
 
 export default function App() {
   const [products, setProducts] = useState<Product[]>(FALLBACK_PRODUCTS);
