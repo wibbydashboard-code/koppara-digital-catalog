@@ -34,39 +34,42 @@ import {
 
 const KopparaLogo = ({ className = "h-20", compact = false }: { className?: string; compact?: boolean }) => {
   const [imgError, setImgError] = useState(false);
-
-  // Logo centralizado para evitar errores de ruta
   const logoSrc = "/icon-512.png";
 
   if (compact) {
     return (
-      <div className={`${className} overflow-hidden w-12 h-12 flex items-center justify-center bg-white rounded-lg`}>
-        <img
-          src={logoSrc}
-          alt="Koppara"
-          className="h-full w-auto object-contain"
-          onError={() => setImgError(true)}
-        />
+      <div className={`${className} overflow-hidden w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm`}>
+        {!imgError ? (
+          <img src={logoSrc} alt="K" className="h-4/5 w-auto object-contain" onError={() => setImgError(true)} />
+        ) : (
+          <span className="text-koppara-green font-black text-xl">K</span>
+        )}
       </div>
     );
   }
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
-      {!imgError ? (
-        <img
-          src={logoSrc}
-          alt="Koppara"
-          className="h-full w-auto object-contain"
-          style={{ height: '100%', width: 'auto' }}
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <div className="flex items-center gap-1.5 font-sans">
-          <div className="w-8 h-8 bg-koppara-green rounded-sm flex items-center justify-center text-white text-xs font-bold shadow-sm">K</div>
-          <span className="text-2xl font-bold text-koppara-gray tracking-tight">Koppara</span>
-        </div>
-      )}
+    <div className={`flex items-center gap-4 ${className} group`}>
+      <div className="h-full aspect-square relative flex items-center justify-center">
+        {!imgError ? (
+          <img
+            src={logoSrc}
+            alt="Koppara"
+            className="h-full w-auto object-contain transition-transform group-hover:scale-110 duration-500"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-12 h-12 bg-koppara-green rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shadow-koppara-green/20">K</div>
+        )}
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="text-2xl md:text-3xl font-black text-koppara-gray tracking-[-0.05em] leading-none mb-1">
+          Koppara<span className="text-koppara-green">.</span>
+        </span>
+        <span className="text-[7px] md:text-[9px] uppercase font-black tracking-[0.4em] text-slate-400 leading-none">
+          Cosmética Botánica
+        </span>
+      </div>
     </div>
   );
 };
@@ -708,7 +711,7 @@ export default function App() {
           </nav>
 
           <div className="flex-[2] flex items-center justify-center cursor-pointer group" onClick={() => { setCurrentView('catalog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <KopparaLogo className="h-[64px] group-hover:scale-105 transition-transform" />
+            <KopparaLogo className="h-[80px] group-hover:scale-105 transition-transform" />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
