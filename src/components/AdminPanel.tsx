@@ -5,7 +5,7 @@ import {
   FileText, Megaphone, Send, Trash2, Eye, EyeOff,
   TrendingUp, Users, DollarSign, Upload, MessageCircle,
   Activity, Award, Target, BarChart3, ChevronRight,
-  Clock
+  Clock, Edit, Image as ImageIcon, CheckCircle2
 } from 'lucide-react';
 import { enviarNotificacion } from '../services/notifications.service';
 import { obtenerEstadisticasAdmin, PromotoraStats, ProductStat } from '../services/admin.service';
@@ -24,6 +24,7 @@ type AdminPanelProps = {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, catalogoUrl }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync' | 'stats'>('products');
+  const [editingProduct, setEditingProduct] = useState<AdminProductForm | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [items, setItems] = useState<AdminProductForm[]>([]);
@@ -131,6 +132,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!window.confirm('¿Estás segura de que deseas eliminar este producto? Esta acción no se puede deshacer.')) return;
+    try {
+      const { error } = await supabase.from('productos').delete().eq('id', id);
+      if (error) throw error;
+      setItems(items.filter(i => i.id !== id));
+      setMessage({ text: 'Producto eliminado correctamente', type: 'success' });
+    } catch (err: any) {
+      setMessage({ text: `Error: ${err.message}`, type: 'error' });
+    }
+  };
+  const handleRemoveCatalog = async () => {
+    if (!window.confirm('¿Estás segura de que deseas eliminar el catálogo actual? Las vendedoras ya no podrán descargarlo.')) return;
+
+    setUploading(true);
+    try {
+      const fileName = 'catalogo_maestro_koppara.pdf';
+      const { error } = await supabase.storage
+        .from('catalogo-assets')
+        .remove([fileName]);
+
+      if (error) throw error;
+      setMessage({ text: '✅ Catálogo eliminado correctamente del sistema', type: 'success' });
+    } catch (err: any) {
+      console.error('Remove error:', err);
+      setMessage({ text: `❌ Error al eliminar: ${err.message}`, type: 'error' });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -286,8 +318,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                           </td>
                           <td className="px-6 py-6">
                             <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setEditingProduct(product)}
+                                className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+                                title="Editar detalles completos"
+                              >
+                                <Edit size={16} />
+                              </button>
                               <button onClick={() => saveProduct(product)} className="p-2 bg-slate-900 text-white rounded-lg hover:bg-black transition-colors shadow-lg shadow-black/10"><Save size={16} /></button>
-                              <button className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                              <button onClick={() => deleteProduct(product.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
                             </div>
                           </td>
                         </tr>
@@ -407,6 +446,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                         >
                           <Eye size={20} /> Ver Actual
                         </a>
+
+                        <button
+                          onClick={handleRemoveCatalog}
+                          disabled={uploading}
+                          className="bg-red-50 text-red-500 px-6 py-4 rounded-full font-bold hover:bg-red-100 transition-all flex items-center gap-2"
+                        >
+                          <Trash2 size={18} /> Eliminar
+                        </button>
                       </div>
 
                       <p className="text-[10px] text-slate-400 mt-4 font-mono italic">
@@ -566,6 +613,88 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
           </main>
         </div>
       </div>
+
+      {/* Modal de Edición Completa */}
+      {editingProduct && (
+        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl">
+            <div className="px-10 py-6 border-b flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Edit className="text-koppara-green" />
+                <h3 className="text-xl font-bold text-slate-800">Editar Detalles: {editingProduct.nombre}</h3>
+              </div>
+              <button onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-red-500"><X size={24} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-10 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Columna Izquierda: Información Básica */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Descripción del Producto</label>
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[120px]"
+                      placeholder="Describe la experiencia de lujo..."
+                      value={editingProduct.description || ''}
+                      onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Modo de Uso / Ritual</label>
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[100px]"
+                      placeholder="Paso a paso del ritual..."
+                      value={editingProduct.modo_uso || ''}
+                      onChange={e => setEditingProduct({ ...editingProduct, modo_uso: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Columna Derecha: Listas (Beneficios, Ingredientes) */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Beneficios Clave (Separados por coma)</label>
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[80px]"
+                      placeholder="Relajación profunda, Piel hidratada, etc..."
+                      value={(editingProduct.beneficios || []).join(', ')}
+                      onChange={e => setEditingProduct({ ...editingProduct, beneficios: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Ingredientes Botánicos (Separados por coma)</label>
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:border-koppara-green min-h-[80px]"
+                      placeholder="Aceite de coco, Menta piperita, etc..."
+                      value={(editingProduct.ingredientes || []).join(', ')}
+                      onChange={e => setEditingProduct({ ...editingProduct, ingredientes: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 bg-slate-50 border-t flex justify-end gap-4">
+              <button
+                onClick={() => setEditingProduct(null)}
+                className="px-8 py-3 rounded-xl font-bold text-slate-400 hover:bg-slate-100 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setItems(items.map(i => i.id === editingProduct.id ? editingProduct : i));
+                  await saveProduct(editingProduct);
+                  setEditingProduct(null);
+                }}
+                className="bg-koppara-green text-white px-10 py-3 rounded-xl font-bold shadow-lg shadow-koppara-green/20 hover:scale-105 transition"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
