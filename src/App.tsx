@@ -705,48 +705,51 @@ export default function App() {
             <KopparaLogo className="h-[64px] group-hover:scale-105 transition-transform" />
           </div>
 
-          <div className="flex-1 flex items-center justify-end gap-4">
+          <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
+            {/* Search (Desktop only) */}
             <div className="hidden md:flex items-center bg-koppara-lightGray rounded-full px-4 py-2 border border-slate-100 focus-within:border-koppara-green transition-all max-w-[300px]">
               <Search size={16} className="text-slate-300" />
               <input type="text" placeholder="Buscar..." className="bg-transparent border-none outline-none text-xs ml-2 w-full focus:ring-0 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <button
-              onClick={() => setIsPdfModalOpen(true)}
-              className="hidden md:flex items-center gap-2 bg-koppara-green text-white px-5 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition"
-            >
-              <Download size={16} />
-              Descargar Catálogo PDF
-            </button>
-            <button
-              onClick={() => setIsPdfModalOpen(true)}
-              className="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-koppara-green text-white shadow-lg shadow-koppara-green/20 hover:bg-koppara-forest transition"
-              aria-label="Descargar catalogo PDF"
-            >
-              <Download size={18} />
-            </button>
-            <div className="relative cursor-pointer group" onClick={() => distributor && setUnreadNotif(0)}>
-              <Bell size={24} className="text-slate-400 group-hover:text-koppara-green transition" />
-              {unreadNotif > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-sm ring-2 ring-red-500/20">
-                  {unreadNotif}
-                </span>
-              )}
-            </div>
 
+            {/* Admin Shield (More prominent) */}
             {isAdmin && (
-              <button onClick={() => setCurrentView('admin')} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:bg-koppara-green hover:text-white transition shadow-sm">
+              <button
+                onClick={() => setCurrentView('admin')}
+                className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full transition-all shadow-sm ${currentView === 'admin' ? 'bg-koppara-green text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              >
                 <ShieldCheck size={20} />
+                <span className="hidden sm:inline text-[9px] font-black uppercase tracking-widest">Maestro</span>
               </button>
             )}
-            <button onClick={() => setIsCartOpen(true)} className={`relative flex items-center gap-3 bg-white border border-slate-100 hover:border-koppara-green/30 hover:bg-koppara-lightGray px-5 py-2.5 rounded-full transition-all group ${isCartAnimating ? 'animate-cart-bounce' : ''}`}>
+
+            {/* Cart */}
+            <button onClick={() => setIsCartOpen(true)} className={`relative flex items-center gap-2 bg-white border border-slate-100 hover:border-koppara-green/30 hover:bg-koppara-lightGray p-2.5 md:px-5 md:py-2.5 rounded-full transition-all group ${isCartAnimating ? 'animate-cart-bounce' : ''}`}>
               <ShoppingCart size={18} className="text-koppara-gray group-hover:text-koppara-green transition-colors" />
-              <span className="hidden md:inline text-[11px] font-bold text-koppara-gray">{formatCurrency(cartTotal)}</span>
-              {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-koppara-green text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">{cart.length}</span>}
+              {cartTotal > 0 && <span className="hidden md:inline text-[11px] font-bold text-koppara-gray">{formatCurrency(cartTotal)}</span>}
+              {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-koppara-green text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">{cart.length}</span>}
             </button>
+
+            {/* User Profile / Login */}
             {user || distributor ? (
-              <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 hover:text-red-500 transition"><LogOut size={20} /></button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentView(distributor?.isSocia ? 'socias' : 'catalog')}
+                  className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full transition-all ${currentView === 'socias' ? 'bg-koppara-dark text-white' : 'bg-slate-100 text-slate-500'}`}
+                >
+                  <UserCircle size={20} />
+                  <span className="hidden sm:inline text-[9px] font-black uppercase tracking-widest">Socia</span>
+                </button>
+                <button onClick={handleLogout} className="p-2.5 rounded-full bg-slate-50 text-slate-300 hover:text-red-500 transition"><LogOut size={18} /></button>
+              </div>
             ) : (
-              <button onClick={() => setIsLoginModalOpen(true)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 hover:text-koppara-green transition"><UserCircle size={24} /></button>
+              <button
+                onClick={() => setIsLoginModalOpen(true)}
+                className="flex items-center gap-2 bg-slate-100 text-slate-500 hover:bg-koppara-green hover:text-white px-4 py-2.5 rounded-full transition-all group shadow-sm active:scale-95"
+              >
+                <UserCircle size={20} className="group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Acceso</span>
+              </button>
             )}
           </div>
         </div>
