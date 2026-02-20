@@ -70,6 +70,10 @@ Plataforma de empoderamiento para distribuidoras de cosmética botánica, transf
 - **Aprendizaje**: El error "Failed to fetch" es ambiguo para el usuario final y suele indicar un proyecto de Supabase pausado.
 - **Ajuste**: Se implementó una lógica de captura de errores en el Auth Service que sugiere explícitamente revisar si el proyecto está pausado o si el ID es incorrecto.
 
+### v1.1.5 (Feb 2026) - Migración de Infraestructura
+- **Aprendizaje**: El proyecto original de Supabase quedó inaccesible/pausado permanentemente.
+- **Ajuste**: Se migró la aplicación al nuevo proyecto **"Koppara Labs"** (ID: `rgrdogwwczlxakeggnbu`), actualizando las credenciales maestras en el código para restaurar la operación global.
+
 ---
 
 ## 📝 Instrucción para el Agente de IA

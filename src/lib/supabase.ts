@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js'
  * Credenciales hardcodeadas para asegurar el funcionamiento en cualquier entorno.
  */
 
-const supabaseUrl = 'https://sdxngqnqlwbqdpqcltim.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkeG5ncW5xbHdicWRwcWNsdGltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0Njk2MjgsImV4cCI6MjA4NjA0NTYyOH0.FJWpkWTBP6cxkrnUuZRyvkbyakIQNBsrMo24a1lrax0'
+const supabaseUrl = 'https://rgrdogwwczlxakeggnbu.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJncmRvZ3d3Y3pseGFrZWdnbmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MzQwMTgsImV4cCI6MjA4NzExMDAxOH0.K0MrGpM6QiZ8eEIXXNyVwXEyKwIaGyb_n3heb5mbfDI'
 
 console.log('🔍 Inicializando Supabase...')
 console.log('URL:', supabaseUrl)
