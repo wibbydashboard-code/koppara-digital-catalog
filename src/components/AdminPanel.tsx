@@ -26,7 +26,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
   const [activeTab, setActiveTab] = useState<'products' | 'notifications' | 'sync' | 'stats'>('products');
   const [editingProduct, setEditingProduct] = useState<AdminProductForm | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const productImageInputRef = React.useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingProductId, setUploadingProductId] = useState<string | null>(null);
   const [items, setItems] = useState<AdminProductForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
@@ -97,6 +99,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
   };
 
   const calculateDiscount = (price: number, percent: number) => price * (1 - percent / 100);
+
+  // --- PRODUCT IMAGE UPLOAD ---
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadingProductId) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setMessage({ text: '⚠️ Solo se permiten imágenes JPG, PNG o WebP', type: 'error' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ text: '⚠️ La imagen no debe superar 5MB', type: 'error' });
+      return;
+    }
+
+    setUploading(true);
+    setMessage(null);
+    const productId = uploadingProductId;
+
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `productos/${productId}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('catalogo-assets')
+        .upload(fileName, file, {
+          upsert: true,
+          contentType: file.type,
+          cacheControl: '3600'
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('catalogo-assets')
+        .getPublicUrl(fileName);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Actualizar en estado local
+      setItems(prev => prev.map(item =>
+        item.id === productId ? { ...item, imagen_url: publicUrl, image: publicUrl } : item
+      ));
+
+      // Actualizar en DB
+      await supabase.from('productos').update({ imagen_url: publicUrl }).eq('id', productId);
+
+      setMessage({ text: '✅ Imagen subida correctamente', type: 'success' });
+    } catch (err: any) {
+      console.error('Product image upload error:', err);
+      setMessage({ text: `❌ Error al subir imagen: ${err.message}`, type: 'error' });
+    } finally {
+      setUploading(false);
+      setUploadingProductId(null);
+      if (productImageInputRef.current) productImageInputRef.current.value = '';
+    }
+  };
+
+  const triggerProductImageUpload = (productId: string) => {
+    setUploadingProductId(productId);
+    productImageInputRef.current?.click();
+  };
 
   const handleSendNotif = async () => {
     try {
@@ -272,9 +338,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                         <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 group relative">
-                                <img src={product.image || product.imagen_url} className="w-full h-full object-cover" />
-                                <button className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <div className={`w-10 h-10 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 group relative ${uploading && uploadingProductId === product.id ? 'animate-pulse' : ''}`}>
+                                <img src={product.image || product.imagen_url || ''} className="w-full h-full object-cover" alt="" />
+                                <button
+                                  onClick={() => triggerProductImageUpload(product.id)}
+                                  disabled={uploading}
+                                  className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                                  title="Subir imagen del producto"
+                                >
                                   <Upload size={12} />
                                 </button>
                               </div>
@@ -358,10 +429,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
             )}
 
             {activeTab === 'notifications' && (
-              <div className="max-w-3xl space-y-8 animate-fadeIn">
-                <h3 className="text-3xl font-bold text-slate-800">Centro de Avisos</h3>
+              <div className="max-w-3xl space-y-6 animate-fadeIn">
+                <h3 className="text-xl font-bold text-slate-800 tracking-tight">Centro de Avisos</h3>
 
-                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-6">
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categoría del Mensaje</label>
@@ -412,16 +483,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                     />
                   </div>
 
-                  <div className="pt-6 flex flex-col md:flex-row gap-4">
+                  <div className="pt-4 flex flex-col md:flex-row gap-3">
                     <button
                       onClick={handleSendNotif}
-                      className="flex-1 bg-koppara-green text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-koppara-green/20 hover:scale-[1.02] transition-all"
+                      className="flex-1 bg-koppara-green text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-koppara-green/20 hover:scale-[1.02] transition-all text-xs"
                     >
-                      <Send size={20} /> Enviar Aviso a la App
+                      <Send size={16} /> Enviar Aviso a la App
                     </button>
                     {notifForm.categoria === 'urgente' && (
-                      <button className="flex-1 bg-slate-900 text-white font-bold py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-black transition-all">
-                        <MessageCircle size={20} /> Notificar por WhatsApp
+                      <button className="flex-1 bg-slate-900 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition-all text-xs">
+                        <MessageCircle size={16} /> Notificar por WhatsApp
                       </button>
                     )}
                   </div>
@@ -430,9 +501,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
             )}
 
             {activeTab === 'sync' && (
-              <div className="max-w-2xl space-y-8 animate-fadeIn">
-                <h3 className="text-3xl font-bold text-slate-800">Sincronización del Sistema</h3>
-                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-8">
+              <div className="max-w-2xl space-y-6 animate-fadeIn">
+                <h3 className="text-xl font-bold text-slate-800 tracking-tight">Sincronización del Sistema</h3>
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
                   <div className="flex items-start gap-6">
                     <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shrink-0">
                       <FileText size={28} />
@@ -451,6 +522,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                           onChange={handleFileUpload}
                           className="hidden"
                           accept=".pdf"
+                        />
+                        {/* Input oculto para imágenes de producto */}
+                        <input
+                          type="file"
+                          ref={productImageInputRef}
+                          onChange={handleProductImageUpload}
+                          className="hidden"
+                          accept="image/jpeg,image/png,image/webp"
                         />
                         <button
                           onClick={() => fileInputRef.current?.click()}
@@ -648,10 +727,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
               <button onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-red-500"><X size={24} /></button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-10 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Columna Izquierda: Información Básica */}
-                <div className="space-y-6">
+                <div className="space-y-5">
+                  {/* Imagen del producto */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Imagen del Producto</label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
+                        <img src={editingProduct.image || editingProduct.imagen_url || ''} className="w-full h-full object-cover" alt="" />
+                      </div>
+                      <button
+                        onClick={() => triggerProductImageUpload(editingProduct.id)}
+                        disabled={uploading}
+                        className="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg font-bold text-xs hover:bg-slate-200 transition-colors flex items-center gap-2"
+                      >
+                        <Upload size={14} /> {uploading && uploadingProductId === editingProduct.id ? 'Subiendo...' : 'Cambiar Imagen'}
+                      </button>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Descripción del Producto</label>
                     <textarea
@@ -687,7 +783,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, descargarPDF, c
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Ingredientes Botánicos (Separados por coma)</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Ingredientes Orgánicos (Separados por coma)</label>
                     <textarea
                       className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs focus:border-koppara-green min-h-[60px]"
                       placeholder="Aceite de coco, Menta piperita, etc..."
